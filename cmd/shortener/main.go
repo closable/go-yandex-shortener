@@ -73,8 +73,9 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		w.Header().Set("Location", Storage.Urls[shortener])
 		w.WriteHeader(http.StatusTemporaryRedirect)
-		body = fmt.Sprintf("%s ", Storage.Urls[shortener])
+		// body = fmt.Sprintf("%s ", Storage.Urls[shortener])
 
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -139,6 +140,7 @@ func findKeyByValue(urlText string) string {
 func findExistingKey(keyText string) bool {
 
 	_, ok := Storage.Urls[keyText]
+
 	return ok
 
 	/*for key := range Storage.Urls {
