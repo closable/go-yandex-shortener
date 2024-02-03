@@ -6,9 +6,15 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
-var Storage = make(map[string]string)
+// var Storage = make(map[string]string)
+
+var Storage = struct {
+	mu   sync.Mutex
+	Urls map[string]string
+}{Urls: make(map[string]string)}
 
 func main() {
 
@@ -25,6 +31,7 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 
 	body := ""
 	shortener := ""
+	// fmt.Println(r.Proto, len(r.Proto))
 
 	w.Header().Set("Content-Type", "plain/text")
 	switch method := r.Method; method {
@@ -37,7 +44,7 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !(validateUrl(string(info))) {
+		if !(validateURL(string(info))) {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Error! Check url it's should seems as like this 'http[s]://example.com'"))
 			return
@@ -67,7 +74,7 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusTemporaryRedirect)
-		body = fmt.Sprintf("%s ", Storage[shortener])
+		body = fmt.Sprintf("%s ", Storage.Urls[shortener])
 
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -81,23 +88,26 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func getShortener(urlText string) string {
+func getShortener(txtURL string) string {
 	shortener := ""
 	// it needs for exclude existing urls
-	key := findKeyByValue(string(urlText))
+	Storage.mu.Lock()
+	key := findKeyByValue(string(txtURL))
 
 	if len(key) == 0 {
 		shortener = getShortnerKey(6)
-		Storage[shortener] = urlText
+		Storage.Urls[shortener] = txtURL
 	} else {
 		shortener = key
 	}
+
+	Storage.mu.Unlock()
 	return shortener
 }
 
 // check url
-func validateUrl(txtUrl string) bool {
-	u, err := url.Parse(txtUrl)
+func validateURL(txtURL string) bool {
+	u, err := url.Parse(txtURL)
 	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
@@ -118,7 +128,7 @@ func getShortnerKey(length int) string {
 }
 
 func findKeyByValue(urlText string) string {
-	for key, value := range Storage {
+	for key, value := range Storage.Urls {
 		if value == urlText {
 			return key
 		}
@@ -127,10 +137,14 @@ func findKeyByValue(urlText string) string {
 }
 
 func findExistingKey(keyText string) bool {
-	for key := range Storage {
+
+	_, ok := Storage.Urls[keyText]
+	return ok
+
+	/*for key := range Storage.Urls {
 		if key == keyText {
 			return true
 		}
 	}
-	return false
+	return false*/
 }
