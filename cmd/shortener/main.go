@@ -31,7 +31,6 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 
 	body := ""
 	shortener := ""
-	// fmt.Println(r.Proto, len(r.Proto))
 
 	w.Header().Set("Content-Type", "plain/text")
 	switch method := r.Method; method {
@@ -53,9 +52,7 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 		shortener = getShortener(string(info))
 
 		w.WriteHeader(http.StatusCreated)
-		body = fmt.Sprintf("%s/%s", r.Host, shortener)
-		//fmt.Println(len(Storage))
-		//body += fmt.Sprintf("url: %s \r\n short: %s ", string(info), shortener)
+		body = fmt.Sprintf("http://%s/%s", r.Host, shortener)
 
 	case http.MethodGet:
 		path := r.URL.Path
@@ -82,8 +79,6 @@ func webhook(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Error! Please, check documentation again!"))
 		return
 	}
-
-	// fmt.Println(Storage)
 
 	w.Write([]byte(body))
 
