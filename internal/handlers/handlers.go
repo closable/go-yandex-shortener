@@ -49,7 +49,9 @@ func GenerateShortener(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	// body := fmt.Sprintf("http://%s/%s", r.Host, shortener)
 
-	adr, _ := url.Parse(config.FlagSendAddr)
+	srvAdr := config.GetEnvParam("SND_SERVER")
+	adr, _ := url.Parse(srvAdr)
+
 	body := ""
 	if len(adr.Host) == 0 {
 		body = fmt.Sprintf("http://%s/%s", config.FlagSendAddr, shortener)

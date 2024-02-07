@@ -10,19 +10,22 @@ import (
 )
 
 func main() {
+	config.ParseConfigEnv()
 	config.ParseFlags()
-	//fmt.Println("Running server on", flagRunAddr)
 	if err := run(); err != nil {
 		panic(err)
 	}
 }
 
 func run() error {
-	fmt.Println("Running server on", config.FlagRunAddr)
+	srvAdr := config.GetEnvParam("RUN_SERVER")
+
+	fmt.Println("Running server on", srvAdr)
 	r := chi.NewRouter()
 	r.Get("/{id}", handlers.GetEndpointByShortener)
 	r.Post("/", handlers.GenerateShortener)
-	return http.ListenAndServe(config.FlagRunAddr, r)
 
+	// return http.ListenAndServe(config.FlagRunAddr, r)
+	return http.ListenAndServe(srvAdr, r)
 	// return http.ListenAndServe(`:8080`, http.HandlerFunc(handlers.Webhook))
 }
