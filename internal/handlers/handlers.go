@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/closable/go-yandex-shortener/internal/config"
 	"github.com/closable/go-yandex-shortener/internal/storage"
 	"github.com/closable/go-yandex-shortener/internal/utils"
 )
@@ -45,7 +46,8 @@ func GenerateShortener(w http.ResponseWriter, r *http.Request) {
 	shortener = storage.GetShortener(string(info))
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	body := fmt.Sprintf("http://%s/%s", r.Host, shortener)
+	// body := fmt.Sprintf("http://%s/%s", r.Host, shortener)
+	body := fmt.Sprintf("http://%s/%s", config.FlagSendAddr, shortener)
 	w.Write([]byte(body))
 
 }
