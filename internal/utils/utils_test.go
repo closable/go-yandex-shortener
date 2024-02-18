@@ -37,3 +37,23 @@ func TestValidateURL(t *testing.T) {
 		})
 	}
 }
+
+func TestGetRandomKey(t *testing.T) {
+
+	tests := []struct {
+		name string
+		want int
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Add shortener",
+			want: int(6), // default key length
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			shortener := GetRandomKey(tt.want)
+			assert.Equal(t, len(shortener), tt.want)
+		})
+	}
+}

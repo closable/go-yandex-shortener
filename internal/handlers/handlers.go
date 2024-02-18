@@ -6,28 +6,27 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/closable/go-yandex-shortener/internal/config"
-	"github.com/closable/go-yandex-shortener/internal/storage"
 	"github.com/closable/go-yandex-shortener/internal/utils"
 )
 
-func Webhook(w http.ResponseWriter, r *http.Request) {
+type Storager interface {
+	GetShortener(txtURL string) string
+	FindExistingKey(keyText string) (string, bool)
+}
 
-	switch method := r.Method; method {
-	case http.MethodPost:
-		GenerateShortener(w, r)
+type URLHandler struct {
+	store   Storager
+	baseURL string
+}
 
-	case http.MethodGet:
-		GetEndpointByShortener(w, r)
-
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Write([]byte("Error! Please, check documentation again!"))
-		return
+func New(st Storager, baseURL string) *URLHandler {
+	return &URLHandler{
+		store:   st,
+		baseURL: baseURL,
 	}
 }
 
-func GenerateShortener(w http.ResponseWriter, r *http.Request) {
+func (h *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) {
 
 	shortener := ""
 
@@ -43,29 +42,28 @@ func GenerateShortener(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Error! Check url it's should seems as like this 'http[s]://example.com'"))
 		return
 	}
+	shortener = h.store.GetShortener(string(info))
 
-	shortener = storage.GetShortener(string(info))
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	// body := fmt.Sprintf("http://%s/%s", r.Host, shortener)
 
-	srvAdr := config.GetEnvParam("SND_SERVER")
-	adr, _ := url.Parse(srvAdr)
+	adr, _ := url.Parse(h.baseURL)
 
 	body := ""
 	if len(adr.Host) == 0 {
-		body = fmt.Sprintf("http://%s/%s", config.FlagSendAddr, shortener)
+		body = fmt.Sprintf("http://%s/%s", h.baseURL, shortener)
 	} else {
-		body = fmt.Sprintf("%s/%s", config.FlagSendAddr, shortener)
+		body = fmt.Sprintf("%s/%s", h.baseURL, shortener)
 	}
 
 	w.Write([]byte(body))
 
 }
 
-func GetEndpointByShortener(w http.ResponseWriter, r *http.Request) {
+func (h *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Request) {
 	shortener := ""
 	path := r.URL.Path
+
 	if len(path) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Error! id is empty!"))
@@ -73,13 +71,14 @@ func GetEndpointByShortener(w http.ResponseWriter, r *http.Request) {
 
 	}
 	shortener = path[1:]
+	url, ok := h.store.FindExistingKey(shortener)
 
-	if !storage.FindExistingKey(shortener) || len(shortener) == 0 {
+	if !ok || len(shortener) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Error! id is not found or empty"))
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Set("Location", storage.Storage.Urls[shortener])
+	w.Header().Set("Location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }

@@ -1,50 +1,51 @@
 package storage
 
 import (
-	"math/rand"
 	"sync"
+
+	"github.com/closable/go-yandex-shortener/internal/utils"
 )
 
-var Storage = struct {
+// var Storage = struct {
+// 	mu   sync.Mutex
+// 	Urls map[string]string
+// }{Urls: make(map[string]string)}
+
+type Store struct {
 	mu   sync.Mutex
 	Urls map[string]string
-}{Urls: make(map[string]string)}
+}
 
-func GetShortener(txtURL string) string {
+func New() *Store {
+	return &Store{Urls: make(map[string]string)}
+}
+
+func (s *Store) GetShortener(txtURL string) string {
 	shortener := ""
 	// it needs for exclude existing urls
-	Storage.mu.Lock()
-	key := FindKeyByValue(string(txtURL))
+	s.mu.Lock()
+	key := s.FindKeyByValue(string(txtURL))
 
 	if len(key) == 0 {
-		shortener = GetShortnerKey(6)
-		Storage.Urls[shortener] = txtURL
+		shortener = utils.GetRandomKey(6)
+		for {
+			// exclude existing keys
+			_, ok := s.FindExistingKey(shortener)
+			if !ok {
+				break
+			}
+		}
+		s.Urls[shortener] = txtURL
 	} else {
 		shortener = key
 	}
 
-	Storage.mu.Unlock()
+	s.mu.Unlock()
 	return shortener
 }
 
-func GetShortnerKey(length int) string {
-	chars := "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
-	shortener := ""
-	for {
-		for i := 0; i < length; i++ {
-			c := chars[rand.Intn(len(chars))]
-			shortener += string(c)
-
-		}
-		// exclude existing keys
-		if !(FindExistingKey(shortener)) {
-			return shortener
-		}
-	}
-}
-
-func FindKeyByValue(urlText string) string {
-	for key, value := range Storage.Urls {
+func (s *Store) FindKeyByValue(urlText string) string {
+	for key, value := range s.Urls {
 		if value == urlText {
 			return key
 		}
@@ -52,9 +53,9 @@ func FindKeyByValue(urlText string) string {
 	return ""
 }
 
-func FindExistingKey(keyText string) bool {
+func (s *Store) FindExistingKey(keyText string) (string, bool) {
 
-	_, ok := Storage.Urls[keyText]
+	value, ok := s.Urls[keyText]
 
-	return ok
+	return value, ok
 }

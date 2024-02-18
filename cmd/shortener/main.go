@@ -6,26 +6,21 @@ import (
 
 	"github.com/closable/go-yandex-shortener/internal/config"
 	"github.com/closable/go-yandex-shortener/internal/handlers"
-	"github.com/go-chi/chi/v5"
+	"github.com/closable/go-yandex-shortener/internal/storage"
 )
 
 func main() {
-	config.ParseConfigEnv()
-	config.ParseFlags()
 	if err := run(); err != nil {
 		panic(err)
 	}
 }
 
 func run() error {
-	srvAdr := config.GetEnvParam("RUN_SERVER")
+	cfg := config.LoadConfig()
+	store := storage.New()
+	handler := handlers.New(store, cfg.BaseURL)
 
-	fmt.Println("Running server on", srvAdr)
-	r := chi.NewRouter()
-	r.Get("/{id}", handlers.GetEndpointByShortener)
-	r.Post("/", handlers.GenerateShortener)
+	fmt.Println("Running server on", cfg.ServerAddress)
 
-	// return http.ListenAndServe(config.FlagRunAddr, r)
-	return http.ListenAndServe(srvAdr, r)
-	// return http.ListenAndServe(`:8080`, http.HandlerFunc(handlers.Webhook))
+	return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())
 }

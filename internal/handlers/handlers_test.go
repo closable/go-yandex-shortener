@@ -8,11 +8,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/closable/go-yandex-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGenerateShortener(t *testing.T) {
+	store := storage.New()
+	handler := New(store, "localhost:8080")
 
 	type wants struct {
 		method      string
@@ -53,15 +56,6 @@ func TestGenerateShortener(t *testing.T) {
 				statusCode:  http.StatusBadRequest,
 			},
 		},
-		{
-			name: "Method POST not allowed",
-			wants: wants{
-				method:      "PUT",
-				body:        "http://yandex.ru",
-				contentType: "text/plain",
-				statusCode:  http.StatusMethodNotAllowed,
-			},
-		},
 	}
 	for _, tt := range tests {
 		bodyReader := strings.NewReader(tt.wants.body)
@@ -69,7 +63,8 @@ func TestGenerateShortener(t *testing.T) {
 		r := httptest.NewRequest(tt.wants.method, "/", bodyReader)
 		w := httptest.NewRecorder()
 		// вызовем хендлер как обычную функцию, без запуска самого сервера
-		Webhook(w, r)
+
+		handler.GenerateShortener(w, r)
 		assert.Equal(t, tt.wants.statusCode, w.Code, "Differents status codes")
 		//assert.Equal(t, tt.wants.contentType, w.Header().Get("Content-Type"))
 
@@ -77,6 +72,8 @@ func TestGenerateShortener(t *testing.T) {
 }
 
 func TestGetEndpointByShortener(t *testing.T) {
+	store := storage.New()
+	handler := New(store, "localhost:8080")
 
 	type wants struct {
 		method      string
@@ -108,15 +105,6 @@ func TestGetEndpointByShortener(t *testing.T) {
 				statusCode:  http.StatusBadRequest,
 			},
 		},
-		{
-			name: "Method GET not found",
-			wants: wants{
-				method:      "PUT",
-				body:        "http://yandex.ru",
-				contentType: "text/plain",
-				statusCode:  http.StatusMethodNotAllowed,
-			},
-		},
 	}
 	for _, tt := range tests {
 		shortener := ""
@@ -125,7 +113,9 @@ func TestGetEndpointByShortener(t *testing.T) {
 		bodyReader := strings.NewReader(tt.wants.body)
 		r := httptest.NewRequest("POST", "/", bodyReader)
 		w := httptest.NewRecorder()
-		Webhook(w, r)
+
+		handler.GenerateShortener(w, r)
+
 		body := w.Body.String()
 		path, err := url.Parse(body)
 		require.Nil(t, err)
@@ -139,9 +129,9 @@ func TestGetEndpointByShortener(t *testing.T) {
 
 		r = httptest.NewRequest(tt.wants.method, fmt.Sprintf("/%s", shortener), nil)
 		w = httptest.NewRecorder()
-
+		handler.GetEndpointByShortener(w, r)
 		// вызовем хендлер как обычную функцию, без запуска самого сервера
-		Webhook(w, r)
+
 		assert.Equal(t, tt.wants.statusCode, w.Code, "Differents status codes")
 		//assert.Equal(t, tt.wants.contentType, w.Header().Get("Content-Type"))
 
