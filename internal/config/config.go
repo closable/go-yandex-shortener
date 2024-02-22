@@ -1,0 +1,60 @@
+package config
+
+import (
+	"flag"
+
+	"github.com/caarlos0/env/v10"
+)
+
+type config struct {
+	//ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	ServerAddress string `env:"SERVER_ADDRESS"`
+	//BaseURL       string `env:"BASE_URL" envDefault:"localhost:8080"`
+	BaseURL string `env:"BASE_URL"`
+}
+
+var configEnv = config{}
+
+func ParseConfigEnv() {
+	env.Parse(&configEnv)
+}
+
+// экспортированная переменная flagRunAddr содержит адрес и порт для запуска сервера
+var FlagRunAddr string
+var FlagSendAddr string
+
+// parseFlags обрабатывает аргументы командной строки
+// и сохраняет их значения в соответствующих переменных
+func ParseFlags() {
+	// регистрируем переменную flagRunAddr
+	// как аргумент -a со значением :8080 по умолчанию
+	flag.StringVar(&FlagRunAddr, "a", "localhost:8080", "address and port to run server")
+	// адрес и порт куда отправлять сокращатель
+	flag.StringVar(&FlagSendAddr, "b", "localhost:8080", "seneder address and port to run server")
+	// парсим переданные серверу аргументы в зарегистрированные переменные
+	flag.Parse()
+}
+
+// загружаем данные среды окружения
+func LoadConfig() *config {
+	ParseConfigEnv()
+	ParseFlags()
+
+	var config = &config{}
+
+	if len(configEnv.ServerAddress) > 0 {
+		config.ServerAddress = configEnv.ServerAddress
+	}
+	if len(FlagRunAddr) > 0 {
+		config.ServerAddress = FlagRunAddr
+	}
+
+	if len(configEnv.BaseURL) > 0 {
+		config.BaseURL = configEnv.BaseURL
+	}
+	if len(FlagSendAddr) > 0 {
+		config.BaseURL = FlagSendAddr
+	}
+
+	return config
+}
