@@ -69,8 +69,8 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode // захватываем код статуса
 }
 
-func (h *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) {
-	sugar := *h.logger.Sugar()
+func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) {
+	sugar := *uh.logger.Sugar()
 	shortener := ""
 
 	info, err := io.ReadAll(r.Body)
@@ -96,26 +96,26 @@ func (h *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	shortener = h.store.GetShortener(string(info))
+	shortener = uh.store.GetShortener(string(info))
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 
-	adr, _ := url.Parse(h.baseURL)
+	adr, _ := url.Parse(uh.baseURL)
 
 	body := ""
 	if len(adr.Host) == 0 {
-		body = fmt.Sprintf("http://%s/%s", h.baseURL, shortener)
+		body = fmt.Sprintf("http://%s/%s", uh.baseURL, shortener)
 	} else {
-		body = fmt.Sprintf("%s/%s", h.baseURL, shortener)
+		body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
 	}
 
 	w.Write([]byte(body))
 
 }
 
-func (h *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Request) {
-	sugar := *h.logger.Sugar()
+func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Request) {
+	sugar := *uh.logger.Sugar()
 	shortener := ""
 	path := r.URL.Path
 
@@ -131,7 +131,7 @@ func (h *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Reque
 
 	}
 	shortener = path[1:]
-	url, ok := h.store.FindExistingKey(shortener)
+	url, ok := uh.store.FindExistingKey(shortener)
 
 	if !ok || len(shortener) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
