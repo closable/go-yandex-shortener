@@ -24,8 +24,8 @@ type URLHandler struct {
 var (
 	errBody    = "Error! Request body is empty!"
 	errURL     = "Error! Check url it's should seems as like this 'http[s]://example.com'"
-	emptyId    = "Error! id is empty!"
-	notFoundId = "Error! id is not found or empty"
+	emptyID    = "Error! id is empty!"
+	notFoundID = "Error! id is not found or empty"
 )
 
 func New(st Storager, baseURL string, logger zap.Logger) *URLHandler {
