@@ -121,11 +121,11 @@ func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Requ
 
 	if len(path) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(emptyId))
+		w.Write([]byte(emptyID))
 		sugar.Debugln(
 			"uri", r.RequestURI,
 			"method", r.Method,
-			"description", emptyId,
+			"description", emptyID,
 		)
 		return
 
@@ -135,11 +135,11 @@ func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Requ
 
 	if !ok || len(shortener) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(notFoundId))
+		w.Write([]byte(notFoundID))
 		sugar.Infoln(
 			"uri", r.RequestURI,
 			"method", r.Method,
-			"description", notFoundId,
+			"description", notFoundID,
 		)
 		return
 	}
