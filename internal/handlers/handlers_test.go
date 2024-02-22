@@ -15,7 +15,8 @@ import (
 
 func TestGenerateShortener(t *testing.T) {
 	store := storage.New()
-	handler := New(store, "localhost:8080")
+	logger := NewLogger()
+	handler := New(store, "localhost:8080", logger)
 
 	type wants struct {
 		method      string
@@ -73,7 +74,8 @@ func TestGenerateShortener(t *testing.T) {
 
 func TestGetEndpointByShortener(t *testing.T) {
 	store := storage.New()
-	handler := New(store, "localhost:8080")
+	logger := NewLogger()
+	handler := New(store, "localhost:8080", logger)
 
 	type wants struct {
 		method      string

@@ -1,13 +1,16 @@
 package handlers
 
-import "github.com/go-chi/chi/v5"
+import (
+	"github.com/go-chi/chi/v5"
+)
 
-func (h *URLHandler) InitRouter() chi.Router {
+func (uh *URLHandler) InitRouter() chi.Router {
 
 	router := chi.NewRouter()
-
-	router.Post("/", h.GenerateShortener)
-	router.Get("/{id}", h.GetEndpointByShortener)
+	// router.Use(middleware.Logger)
+	router.Use(uh.Logger)
+	router.Post("/", uh.GenerateShortener)
+	router.Get("/{id}", uh.GetEndpointByShortener)
 
 	return router
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/closable/go-yandex-shortener/internal/config"
@@ -18,9 +17,12 @@ func main() {
 func run() error {
 	cfg := config.LoadConfig()
 	store := storage.New()
-	handler := handlers.New(store, cfg.BaseURL)
+	logger := handlers.NewLogger()
+	sugar := *logger.Sugar()
 
-	fmt.Println("Running server on", cfg.ServerAddress)
+	handler := handlers.New(store, cfg.BaseURL, logger)
 
+	//fmt.Println("Running server on", cfg.ServerAddress)
+	sugar.Infoln("Running server on", cfg.ServerAddress)
 	return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())
 }
