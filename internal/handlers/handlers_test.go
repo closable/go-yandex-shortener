@@ -195,7 +195,7 @@ func TestGenerateJSONShortener(t *testing.T) {
 		body, _ := json.Marshal(jsonURL)
 		bodyReader := bytes.NewReader([]byte(body))
 
-		r := httptest.NewRequest(tt.wants.method, "/shorten", bodyReader)
+		r := httptest.NewRequest(tt.wants.method, "/api/shorten", bodyReader)
 		w := httptest.NewRecorder()
 		// вызовем хендлер как обычную функцию, без запуска самого сервера
 
