@@ -161,7 +161,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 	sugar := *uh.logger.Sugar()
 	shortener := ""
 	body := ""
-	var jsonUrl = &JSONRequest{}
+	var jsonURL = &JSONRequest{}
 	w.Header().Set("Content-Type", "application/json")
 
 	info, err := io.ReadAll(r.Body)
@@ -181,7 +181,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	// try unmarshal
-	if err = json.Unmarshal(info, jsonUrl); err != nil {
+	if err = json.Unmarshal(info, jsonURL); err != nil {
 		resp, _ := json.Marshal(createRespondBody(errBody))
 
 		w.WriteHeader(http.StatusBadRequest)
@@ -194,7 +194,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	// check valid url
-	if !(utils.ValidateURL(jsonUrl.URL)) {
+	if !(utils.ValidateURL(jsonURL.URL)) {
 		resp, _ := json.Marshal(createRespondBody(errURL))
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(resp))
@@ -206,7 +206,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	shortener = uh.store.GetShortener(jsonUrl.URL)
+	shortener = uh.store.GetShortener(jsonURL.URL)
 	adr, _ := url.Parse(uh.baseURL)
 
 	body = ""
