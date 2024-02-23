@@ -189,10 +189,10 @@ func TestGenerateJSONShortener(t *testing.T) {
 	}
 	for _, tt := range tests {
 
-		var jsonUrl = &JSONRequest{
+		var jsonURL = &JSONRequest{
 			URL: tt.wants.body,
 		}
-		body, _ := json.Marshal(jsonUrl)
+		body, _ := json.Marshal(jsonURL)
 		bodyReader := bytes.NewReader([]byte(body))
 
 		r := httptest.NewRequest(tt.wants.method, "/shorten", bodyReader)
