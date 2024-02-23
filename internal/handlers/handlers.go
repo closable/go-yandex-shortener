@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +20,14 @@ type URLHandler struct {
 	store   Storager
 	baseURL string
 	logger  zap.Logger
+}
+
+type JSONRequest struct {
+	URL string `json:"url"`
+}
+
+type JSONRespond struct {
+	Result string `json:"result"`
 }
 
 var (
@@ -146,4 +155,88 @@ func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Request) {
+	sugar := *uh.logger.Sugar()
+	shortener := ""
+	body := ""
+	var jsonUrl = &JSONRequest{}
+	w.Header().Set("Content-Type", "application/json")
+
+	info, err := io.ReadAll(r.Body)
+	// check body
+
+	if err != nil || len(info) == 0 {
+
+		resp, _ := json.Marshal(createRespondBody(errBody))
+
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(resp)
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", errBody,
+		)
+		return
+	}
+	// try unmarshal
+	if err = json.Unmarshal(info, jsonUrl); err != nil {
+		resp, _ := json.Marshal(createRespondBody(errBody))
+
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(resp))
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", errBody,
+		)
+		return
+	}
+	// check valid url
+	if !(utils.ValidateURL(jsonUrl.URL)) {
+		resp, _ := json.Marshal(createRespondBody(errURL))
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(resp))
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", errURL,
+		)
+		return
+	}
+
+	shortener = uh.store.GetShortener(jsonUrl.URL)
+	adr, _ := url.Parse(uh.baseURL)
+
+	body = ""
+	if len(adr.Host) == 0 {
+		body = fmt.Sprintf("http://%s/%s", uh.baseURL, shortener)
+	} else {
+		body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
+	}
+
+	resp, err := json.Marshal(createRespondBody(body))
+	if err != nil {
+		resp, _ := json.Marshal(createRespondBody(errURL))
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(resp))
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", errURL,
+		)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(resp))
+
+}
+
+func createRespondBody(result string) JSONRespond {
+	var respExtend = &JSONRespond{
+		Result: result,
+	}
+	return *respExtend
 }
