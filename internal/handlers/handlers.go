@@ -16,19 +16,20 @@ type Storager interface {
 	FindExistingKey(keyText string) (string, bool)
 }
 
-type URLHandler struct {
-	store   Storager
-	baseURL string
-	logger  zap.Logger
-}
-
-type JSONRequest struct {
-	URL string `json:"url"`
-}
-
-type JSONRespond struct {
-	Result string `json:"result"`
-}
+type (
+	URLHandler struct {
+		store     Storager
+		baseURL   string
+		logger    zap.Logger
+		maxLength int64
+	}
+	JSONRequest struct {
+		URL string `json:"url"`
+	}
+	JSONRespond struct {
+		Result string `json:"result"`
+	}
+)
 
 var (
 	errBody    = "Error! Request body is empty!"
@@ -37,11 +38,12 @@ var (
 	notFoundID = "Error! id is not found or empty"
 )
 
-func New(st Storager, baseURL string, logger zap.Logger) *URLHandler {
+func New(st Storager, baseURL string, logger zap.Logger, maxLength int64) *URLHandler {
 	return &URLHandler{
-		store:   st,
-		baseURL: baseURL,
-		logger:  logger,
+		store:     st,
+		baseURL:   baseURL,
+		logger:    logger,
+		maxLength: maxLength, // will compress if content-length > maxLength
 	}
 }
 
@@ -118,7 +120,6 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 	} else {
 		body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
 	}
-
 	w.Write([]byte(body))
 
 }

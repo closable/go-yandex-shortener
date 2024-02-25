@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -18,7 +20,7 @@ import (
 func TestGenerateShortener(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger)
+	handler := New(store, "localhost:8080", logger, 100)
 
 	type wants struct {
 		method      string
@@ -77,7 +79,7 @@ func TestGenerateShortener(t *testing.T) {
 func TestGetEndpointByShortener(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger)
+	handler := New(store, "localhost:8080", logger, 100)
 
 	type wants struct {
 		method      string
@@ -145,7 +147,7 @@ func TestGetEndpointByShortener(t *testing.T) {
 func TestGenerateJSONShortener(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger)
+	handler := New(store, "localhost:8080", logger, 100)
 
 	type wants struct {
 		method      string
@@ -209,4 +211,85 @@ func TestGenerateJSONShortener(t *testing.T) {
 			assert.Equal(t, tt.wants.contentType, w.Header().Get("Content-Type"), "Wrong content-type")
 		}
 	}
+}
+
+func TestCompressor(t *testing.T) {
+	store := storage.New()
+	logger := NewLogger()
+	handler := New(store, "localhost:8080", logger, 1)
+
+	ts := httptest.NewServer(handler.InitRouter())
+	defer ts.Close()
+
+	tests := []struct {
+		name              string
+		path              string
+		body              string
+		expectedEncoding  string
+		acceptedEncodings string
+	}{
+		{
+			name:              "equal encodings",
+			path:              "/",
+			body:              "http://yandex.ru",
+			acceptedEncodings: "gzip",
+			expectedEncoding:  "gzip",
+		},
+		{
+			name:              "equal encodings JSON",
+			path:              "/api/shorten",
+			body:              "{\"url\": \"http://yandex.ru\"}",
+			acceptedEncodings: "gzip",
+			expectedEncoding:  "gzip",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			body := strings.NewReader(tc.body)
+
+			r, _ := http.NewRequest("POST", ts.URL+tc.path, body)
+
+			r.Header.Set("Accept-Encoding", "gzip")
+
+			resp, err := http.DefaultClient.Do(r)
+			require.NoError(t, err)
+
+			defer resp.Body.Close()
+
+			// b, err := io.ReadAll(resp.Body)
+			// require.NoError(t, err)
+			// fmt.Println(string(b))
+
+			require.Equal(t, tc.expectedEncoding, resp.Header.Get("Accept-Encoding"))
+
+		})
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			body := strings.NewReader(tc.body)
+
+			r, _ := http.NewRequest("POST", ts.URL+tc.path, body)
+			r.Header.Set("Accept-Encoding", "gzip")
+
+			resp, err := http.DefaultClient.Do(r)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			zr, err := gzip.NewReader(resp.Body)
+			require.NoError(t, err)
+
+			b, err := io.ReadAll(zr)
+			require.NoError(t, err)
+
+			require.Equal(t, resp.StatusCode, 201)
+			require.Equal(t, tc.expectedEncoding, resp.Header.Get("Accept-Encoding"))
+			fmt.Println(string(b))
+
+		})
+	}
+
 }
