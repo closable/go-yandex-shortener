@@ -8,6 +8,7 @@ func (uh *URLHandler) InitRouter() chi.Router {
 
 	router := chi.NewRouter()
 	// router.Use(middleware.Logger)
+
 	router.Use(uh.Compressor)
 	router.Use(uh.Logger)
 

@@ -73,8 +73,7 @@ func (uh *URLHandler) Compressor(h http.Handler) http.Handler {
 		}
 		defer gz.Close()
 
-		w.Header().Set("Accept-Encoding", "gzip")
-
+		w.Header().Set("Content-Encoding", "gzip")
 		sugar.Infoln(
 			"uri", r.RequestURI,
 			"method", r.Method,
