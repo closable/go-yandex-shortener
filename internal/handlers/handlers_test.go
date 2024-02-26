@@ -53,12 +53,12 @@ func TestGenerateShortener(t *testing.T) {
 			},
 		},
 		{
-			name: "Method POST bad request",
+			name: "Method POST fix bad request",
 			wants: wants{
 				method:      "POST",
 				body:        "yandex.ru",
 				contentType: "text/plain",
-				statusCode:  http.StatusBadRequest,
+				statusCode:  http.StatusCreated,
 			},
 		},
 	}
@@ -180,12 +180,12 @@ func TestGenerateJSONShortener(t *testing.T) {
 			},
 		},
 		{
-			name: "Method POST bad request",
+			name: "Method POST after bad request",
 			wants: wants{
 				method:      "POST",
 				body:        "yandex.ru",
 				contentType: "application/json",
-				statusCode:  http.StatusBadRequest,
+				statusCode:  http.StatusCreated,
 			},
 		},
 	}

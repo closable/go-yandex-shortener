@@ -98,14 +98,16 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if !(utils.ValidateURL(string(info))) {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(errURL))
-		sugar.Infoln(
-			"uri", r.RequestURI,
-			"method", r.Method,
-			"description", errURL,
-		)
-		return
+		// w.WriteHeader(http.StatusBadRequest)
+		// w.Write([]byte(errURL))
+		// sugar.Infoln(
+		// 	"uri", r.RequestURI,
+		// 	"method", r.Method,
+		// 	"description", errURL,
+		// )
+		// return
+		// change behaviour when requeust doesn't have the protocol 26-02-24
+		info = []byte(fmt.Sprintf("http://%s", info))
 	}
 	shortener = uh.store.GetShortener(string(info))
 
@@ -196,15 +198,18 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 	}
 	// check valid url
 	if !(utils.ValidateURL(jsonURL.URL)) {
-		resp, _ := json.Marshal(createRespondBody(errURL))
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(resp))
-		sugar.Infoln(
-			"uri", r.RequestURI,
-			"method", r.Method,
-			"description", errURL,
-		)
-		return
+		// resp, _ := json.Marshal(createRespondBody(errURL))
+		// w.WriteHeader(http.StatusBadRequest)
+		// w.Write([]byte(resp))
+		// sugar.Infoln(
+		// 	"uri", r.RequestURI,
+		// 	"method", r.Method,
+		// 	"description", errURL,
+		// )
+		// return
+
+		// change behaviour when requeust doesn't have the protocol 26-02-24
+		jsonURL.URL = "http://" + jsonURL.URL
 	}
 
 	shortener = uh.store.GetShortener(jsonURL.URL)
