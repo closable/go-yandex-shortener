@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -51,9 +50,9 @@ func (uh *URLHandler) Logger(h http.Handler) http.Handler {
 func (uh *URLHandler) Compressor(h http.Handler) http.Handler {
 	zipFn := func(w http.ResponseWriter, r *http.Request) {
 		sugar := *uh.logger.Sugar()
-		contLength, _ := strconv.ParseInt(r.Header.Get("Content-Length"), 10, 64)
+		//contLength, _ := strconv.ParseInt(r.Header.Get("Content-Length"), 10, 64)
 
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") || contLength < uh.maxLength {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") /*|| contLength < uh.maxLength*/ {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений
 			sugar.Infoln(
