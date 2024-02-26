@@ -20,7 +20,7 @@ func run() error {
 	logger := handlers.NewLogger()
 	sugar := *logger.Sugar()
 
-	handler := handlers.New(store, cfg.BaseURL, logger, 10)
+	handler := handlers.New(store, cfg.BaseURL, logger, 1)
 
 	sugar.Infoln("Running server on", cfg.ServerAddress)
 	return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())
