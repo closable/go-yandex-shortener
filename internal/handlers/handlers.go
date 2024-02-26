@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -83,8 +84,21 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	shortener := ""
+	var reader io.Reader
 
-	info, err := io.ReadAll(r.Body)
+	if r.Header.Get(`Content-Encoding`) == `gzip` {
+		gz, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		reader = gz
+		defer gz.Close()
+	} else {
+		reader = r.Body
+	}
+
+	info, err := io.ReadAll(reader)
 	if err != nil || len(info) == 0 {
 
 		w.WriteHeader(http.StatusBadRequest)
