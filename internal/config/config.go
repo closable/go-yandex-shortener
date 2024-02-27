@@ -65,7 +65,7 @@ func LoadConfig() *config {
 	if len(configEnv.FileStore) > 0 {
 		config.FileStore = configEnv.FileStore
 	}
-	if len(FlagFileStore) > 0 {
+	if len(configEnv.FileStore) == 0 && len(FlagFileStore) > 0 {
 		config.FileStore = FlagFileStore
 	}
 

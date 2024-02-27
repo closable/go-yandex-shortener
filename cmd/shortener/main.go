@@ -20,11 +20,6 @@ func run() error {
 	cfg := config.LoadConfig()
 	if len(cfg.FileStore) > 0 {
 		os.MkdirAll(filepath.Dir(cfg.FileStore), os.ModePerm)
-		_, err := os.Stat(cfg.FileStore)
-		if err != nil {
-			f, _ := os.Create(cfg.FileStore)
-			f.Close()
-		}
 	}
 	store := storage.New()
 	logger := handlers.NewLogger()
