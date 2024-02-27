@@ -31,7 +31,7 @@ func run() error {
 	sugar := *logger.Sugar()
 
 	handler := handlers.New(store, cfg.BaseURL, logger, cfg.FileStore, 1)
-
+	sugar.Infoln("File store path", cfg.FileStore)
 	sugar.Infoln("Running server on", cfg.ServerAddress)
 	return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())
 }
