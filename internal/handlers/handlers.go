@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,8 +26,7 @@ type (
 		store     Storager
 		baseURL   string
 		logger    zap.Logger
-		producer  *Producer
-		consumer  *Consumer
+		fileStore string
 		maxLength int64
 	}
 	JSONRequest struct {
@@ -46,19 +44,22 @@ var (
 	notFoundID = "Error! id is not found or empty"
 )
 
-func New(st Storager, baseURL string, logger zap.Logger, producer *Producer, consumer *Consumer, maxLength int64) *URLHandler {
+func New(st Storager, baseURL string, logger zap.Logger, fileStore string, maxLength int64) *URLHandler {
 	// load stored data
-	err := loadDataFromFile(st, consumer.file)
-	if err != nil {
-		logger.Info("File empty or has wrong contents data were not loaded")
+	if len(fileStore) > 0 {
+		consumer, err := NewConsumer(fileStore)
+		if err != nil {
+			logger.Fatal("File not found")
+		}
+		defer consumer.file.Close()
+		loadDataFromFile(st, consumer.file)
 	}
 
 	return &URLHandler{
 		store:     st,
 		baseURL:   baseURL,
 		logger:    logger,
-		producer:  producer,
-		consumer:  consumer,
+		fileStore: fileStore,
 		maxLength: maxLength, // will compress if content-length > maxLength
 	}
 }
@@ -138,7 +139,7 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(errBody))
-		sugar.Debugln(
+		sugar.Infoln(
 			"uri", r.RequestURI,
 			"method", r.Method,
 			"description", errBody,
@@ -172,12 +173,20 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 		body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
 	}
 
-	if err := uh.producer.WriteEvent(&Event{
-		UUID:       uint(uh.store.Length()),
-		ShortURL:   shortener,
-		OriginlURL: string(info),
-	}); err != nil {
-		log.Fatal(err)
+	if len(uh.fileStore) > 0 {
+		producer, err := NewProducer(uh.fileStore)
+		if err != nil {
+			sugar.Fatal(err)
+		}
+
+		defer producer.Close()
+		if err := producer.WriteEvent(&Event{
+			UUID:       uint(uh.store.Length()),
+			ShortURL:   shortener,
+			OriginlURL: string(info),
+		}); err != nil {
+			sugar.Fatal(err)
+		}
 	}
 
 	w.Write([]byte(body))
@@ -293,12 +302,19 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := uh.producer.WriteEvent(&Event{
-		UUID:       uint(uh.store.Length()),
-		ShortURL:   shortener,
-		OriginlURL: jsonURL.URL,
-	}); err != nil {
-		log.Fatal(err)
+	if len(uh.fileStore) > 0 {
+		producer, err := NewProducer(uh.fileStore)
+		if err != nil {
+			sugar.Fatal(err)
+		}
+		defer producer.Close()
+		if err := producer.WriteEvent(&Event{
+			UUID:       uint(uh.store.Length()),
+			ShortURL:   shortener,
+			OriginlURL: jsonURL.URL,
+		}); err != nil {
+			sugar.Fatal(err)
+		}
 	}
 
 	w.WriteHeader(http.StatusCreated)

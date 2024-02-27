@@ -2,6 +2,9 @@ package config
 
 import (
 	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/caarlos0/env/v10"
 )
@@ -69,5 +72,19 @@ func LoadConfig() *config {
 		config.FileStore = FlagFileStore
 	}
 
+	if len(config.FileStore) > 0 {
+		// for UNIX the /tmp folder is usually there, but it needs to be corrected relative to the working directory
+		fileNameCorrected := fmt.Sprintf(".%s", FlagFileStore)
+		CreateNotIxistingFolders(fileNameCorrected)
+		config.FileStore = fileNameCorrected
+	}
+
 	return config
+}
+
+func CreateNotIxistingFolders(fileName string) {
+	if _, err := os.Stat(fileName); err != nil {
+		path := filepath.Dir(fileName)
+		os.MkdirAll(path, os.ModePerm)
+	}
 }

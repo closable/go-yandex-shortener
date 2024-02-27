@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
-	"path/filepath"
+
+	"github.com/closable/go-yandex-shortener/internal/config"
 )
 
 type (
@@ -27,19 +27,9 @@ func (p *Producer) Close() error {
 	return p.file.Close()
 }
 
-func CreateNotIxistingFolders(fileName string) {
-	if _, err := os.Stat(fileName); err != nil {
-		path := filepath.Dir(fileName)
-		os.MkdirAll(path, os.ModePerm)
-	}
-}
-
 func NewProducer(fileName string) (*Producer, error) {
-	// for UNIX the /tmp folder is usually there, but it needs to be corrected relative to the working directory
-	fileNameCorrected := fmt.Sprintf(".%s", fileName)
-	CreateNotIxistingFolders(fileNameCorrected)
-
-	file, err := os.OpenFile(fileNameCorrected, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	config.CreateNotIxistingFolders(fileName)
+	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
 	}
@@ -55,10 +45,8 @@ func (p *Producer) WriteEvent(event *Event) error {
 }
 
 func NewConsumer(fileName string) (*Consumer, error) {
-	fileNameCorrected := fmt.Sprintf(".%s", fileName)
-	CreateNotIxistingFolders(fileNameCorrected)
-
-	file, err := os.OpenFile(fileNameCorrected, os.O_RDONLY|os.O_CREATE, 0666)
+	config.CreateNotIxistingFolders(fileName)
+	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err
 	}
