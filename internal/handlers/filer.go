@@ -3,8 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"os"
-
-	"github.com/closable/go-yandex-shortener/internal/config"
 )
 
 type (
@@ -28,7 +26,7 @@ func (p *Producer) Close() error {
 }
 
 func NewProducer(fileName string) (*Producer, error) {
-	config.CreateNotIxistingFolders(fileName)
+
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
@@ -45,7 +43,7 @@ func (p *Producer) WriteEvent(event *Event) error {
 }
 
 func NewConsumer(fileName string) (*Consumer, error) {
-	config.CreateNotIxistingFolders(fileName)
+
 	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err

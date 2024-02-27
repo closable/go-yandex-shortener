@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -20,6 +22,9 @@ import (
 var fileStore string = "/tmp/short-url-db.json"
 
 func TestGenerateShortener(t *testing.T) {
+	if len(fileStore) > 0 {
+		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
+	}
 	store := storage.New()
 	logger := NewLogger()
 	handler := New(store, "localhost:8080", logger, fileStore, 1)
@@ -79,6 +84,9 @@ func TestGenerateShortener(t *testing.T) {
 }
 
 func TestGetEndpointByShortener(t *testing.T) {
+	if len(fileStore) > 0 {
+		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
+	}
 	store := storage.New()
 	logger := NewLogger()
 	handler := New(store, "localhost:8080", logger, fileStore, 1)
@@ -147,6 +155,9 @@ func TestGetEndpointByShortener(t *testing.T) {
 }
 
 func TestGenerateJSONShortener(t *testing.T) {
+	if len(fileStore) > 0 {
+		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
+	}
 	store := storage.New()
 	logger := NewLogger()
 	handler := New(store, "localhost:8080", logger, fileStore, 1)
@@ -216,6 +227,9 @@ func TestGenerateJSONShortener(t *testing.T) {
 }
 
 func TestCompressor(t *testing.T) {
+	if len(fileStore) > 0 {
+		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
+	}
 	store := storage.New()
 	logger := NewLogger()
 	handler := New(store, "localhost:8080", logger, fileStore, 1)
