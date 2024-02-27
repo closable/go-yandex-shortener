@@ -20,7 +20,9 @@ import (
 func TestGenerateShortener(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, 100)
+	producer, _ := NewProducer("tmp/short-url-db.json")
+	consumer, _ := NewConsumer("tmp/short-url-db.json")
+	handler := New(store, "localhost:8080", logger, producer, consumer, 1)
 
 	type wants struct {
 		method      string
@@ -79,7 +81,9 @@ func TestGenerateShortener(t *testing.T) {
 func TestGetEndpointByShortener(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, 100)
+	producer, _ := NewProducer("tmp/short-url-db.json")
+	consumer, _ := NewConsumer("tmp/short-url-db.json")
+	handler := New(store, "localhost:8080", logger, producer, consumer, 1)
 
 	type wants struct {
 		method      string
@@ -147,7 +151,9 @@ func TestGetEndpointByShortener(t *testing.T) {
 func TestGenerateJSONShortener(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, 100)
+	producer, _ := NewProducer("tmp/short-url-db.json")
+	consumer, _ := NewConsumer("tmp/short-url-db.json")
+	handler := New(store, "localhost:8080", logger, producer, consumer, 1)
 
 	type wants struct {
 		method      string
@@ -216,7 +222,9 @@ func TestGenerateJSONShortener(t *testing.T) {
 func TestCompressor(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, 1)
+	producer, _ := NewProducer("tmp/short-url-db.json")
+	consumer, _ := NewConsumer("tmp/short-url-db.json")
+	handler := New(store, "localhost:8080", logger, producer, consumer, 1)
 
 	ts := httptest.NewServer(handler.InitRouter())
 	defer ts.Close()

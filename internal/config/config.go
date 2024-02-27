@@ -10,18 +10,20 @@ type config struct {
 	//ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
 	ServerAddress string `env:"SERVER_ADDRESS"`
 	//BaseURL       string `env:"BASE_URL" envDefault:"localhost:8080"`
-	BaseURL string `env:"BASE_URL"`
+	BaseURL   string `env:"BASE_URL"`
+	FileStore string `env:"FILE_STORAGE_PATH"`
 }
 
-var configEnv = config{}
+var (
+	FlagRunAddr   string
+	FlagSendAddr  string
+	FlagFileStore string
+	configEnv     = config{}
+)
 
 func ParseConfigEnv() {
 	env.Parse(&configEnv)
 }
-
-// экспортированная переменная flagRunAddr содержит адрес и порт для запуска сервера
-var FlagRunAddr string
-var FlagSendAddr string
 
 // parseFlags обрабатывает аргументы командной строки
 // и сохраняет их значения в соответствующих переменных
@@ -32,6 +34,8 @@ func ParseFlags() {
 	// адрес и порт куда отправлять сокращатель
 	flag.StringVar(&FlagSendAddr, "b", "localhost:8080", "seneder address and port to run server")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
+	flag.StringVar(&FlagFileStore, "f", "tmp/short-url-db.json", "folder and path where to store data")
+
 	flag.Parse()
 }
 
@@ -54,6 +58,13 @@ func LoadConfig() *config {
 	}
 	if len(FlagSendAddr) > 0 {
 		config.BaseURL = FlagSendAddr
+	}
+
+	if len(configEnv.FileStore) > 0 {
+		config.FileStore = configEnv.FileStore
+	}
+	if len(FlagFileStore) > 0 {
+		config.FileStore = FlagFileStore
 	}
 
 	return config

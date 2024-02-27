@@ -20,7 +20,19 @@ func run() error {
 	logger := handlers.NewLogger()
 	sugar := *logger.Sugar()
 
-	handler := handlers.New(store, cfg.BaseURL, logger, 1)
+	producer, err := handlers.NewProducer(cfg.FileStore)
+	if err != nil {
+		sugar.Infoln("An error occurred while create the file ", cfg.FileStore)
+		panic(err)
+	}
+	consumer, err := handlers.NewConsumer(cfg.FileStore)
+	if err != nil {
+		sugar.Infoln("An error occurred while reading the file ", cfg.FileStore)
+		panic(err)
+	}
+	defer producer.Close()
+
+	handler := handlers.New(store, cfg.BaseURL, logger, producer, consumer, 1)
 
 	sugar.Infoln("Running server on", cfg.ServerAddress)
 	return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())

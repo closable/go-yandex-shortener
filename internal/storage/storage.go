@@ -20,6 +20,14 @@ func New() *Store {
 	return &Store{Urls: make(map[string]string)}
 }
 
+func (s *Store) Length() int {
+	return len(s.Urls)
+}
+
+func (s *Store) AddItem(key string, url string) {
+	s.Urls[key] = url
+}
+
 func (s *Store) GetShortener(txtURL string) string {
 	shortener := ""
 	// it needs for exclude existing urls

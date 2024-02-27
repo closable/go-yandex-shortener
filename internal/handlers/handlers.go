@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 
 	"github.com/closable/go-yandex-shortener/internal/utils"
 	"go.uber.org/zap"
@@ -15,6 +18,8 @@ import (
 type Storager interface {
 	GetShortener(txtURL string) string
 	FindExistingKey(keyText string) (string, bool)
+	Length() int
+	AddItem(key string, url string)
 }
 
 type (
@@ -22,6 +27,8 @@ type (
 		store     Storager
 		baseURL   string
 		logger    zap.Logger
+		producer  *Producer
+		consumer  *Consumer
 		maxLength int64
 	}
 	JSONRequest struct {
@@ -39,11 +46,19 @@ var (
 	notFoundID = "Error! id is not found or empty"
 )
 
-func New(st Storager, baseURL string, logger zap.Logger, maxLength int64) *URLHandler {
+func New(st Storager, baseURL string, logger zap.Logger, producer *Producer, consumer *Consumer, maxLength int64) *URLHandler {
+	// load stored data
+	err := loadDataFromFile(st, consumer.file)
+	if err != nil {
+		logger.Info("File empty or has wrong contents data were not loaded")
+	}
+
 	return &URLHandler{
 		store:     st,
 		baseURL:   baseURL,
 		logger:    logger,
+		producer:  producer,
+		consumer:  consumer,
 		maxLength: maxLength, // will compress if content-length > maxLength
 	}
 }
@@ -67,6 +82,26 @@ type (
 		responseData        *responseData
 	}
 )
+
+func loadDataFromFile(st Storager, file *os.File) error {
+	body, err := io.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	rows := strings.Split(string(body), "\n")
+
+	for _, v := range rows {
+		event := &Event{}
+		err := json.Unmarshal([]byte(v), event)
+		if err != nil {
+			file.Close()
+			break
+		}
+		st.AddItem(event.ShortURL, event.OriginlURL)
+	}
+	return nil
+}
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter
@@ -136,6 +171,15 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 	} else {
 		body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
 	}
+
+	if err := uh.producer.WriteEvent(&Event{
+		UUID:       uint(uh.store.Length()),
+		ShortURL:   shortener,
+		OriginlURL: string(info),
+	}); err != nil {
+		log.Fatal(err)
+	}
+
 	w.Write([]byte(body))
 
 }
@@ -247,6 +291,14 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 			"description", errURL,
 		)
 		return
+	}
+
+	if err := uh.producer.WriteEvent(&Event{
+		UUID:       uint(uh.store.Length()),
+		ShortURL:   shortener,
+		OriginlURL: jsonURL.URL,
+	}); err != nil {
+		log.Fatal(err)
 	}
 
 	w.WriteHeader(http.StatusCreated)
