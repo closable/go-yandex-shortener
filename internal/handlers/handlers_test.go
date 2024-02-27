@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fileStore string = "./../../tmp/short-url-db.json"
+var fileStore string = "/tmp/short-url-db.json"
 
 func TestGenerateShortener(t *testing.T) {
 	store := storage.New()

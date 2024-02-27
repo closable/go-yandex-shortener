@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -72,12 +71,12 @@ func LoadConfig() *config {
 		config.FileStore = FlagFileStore
 	}
 
-	if len(config.FileStore) > 0 {
-		// for UNIX the /tmp folder is usually there, but it needs to be corrected relative to the working directory
-		fileNameCorrected := fmt.Sprintf(".%s", FlagFileStore)
-		CreateNotIxistingFolders(fileNameCorrected)
-		config.FileStore = fileNameCorrected
-	}
+	// if len(config.FileStore) > 0 {
+	// 	// for UNIX the /tmp folder is usually there, but it needs to be corrected relative to the working directory
+	// 	fileNameCorrected := fmt.Sprintf(".%s", FlagFileStore)
+	// 	CreateNotIxistingFolders(fileNameCorrected)
+	// 	config.FileStore = fileNameCorrected
+	// }
 
 	return config
 }
