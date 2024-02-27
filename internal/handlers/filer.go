@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -34,10 +35,11 @@ func CreateNotIxistingFolders(fileName string) {
 }
 
 func NewProducer(fileName string) (*Producer, error) {
+	// for UNIX the /tmp folder is usually there, but it needs to be corrected relative to the working directory
+	fileNameCorrected := fmt.Sprintf(".%s", fileName)
+	CreateNotIxistingFolders(fileNameCorrected)
 
-	CreateNotIxistingFolders(fileName)
-
-	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(fileNameCorrected, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
 	}
@@ -53,10 +55,10 @@ func (p *Producer) WriteEvent(event *Event) error {
 }
 
 func NewConsumer(fileName string) (*Consumer, error) {
+	fileNameCorrected := fmt.Sprintf(".%s", fileName)
+	CreateNotIxistingFolders(fileNameCorrected)
 
-	CreateNotIxistingFolders(fileName)
-
-	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0666)
+	file, err := os.OpenFile(fileNameCorrected, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err
 	}

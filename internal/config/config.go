@@ -34,7 +34,9 @@ func ParseFlags() {
 	// адрес и порт куда отправлять сокращатель
 	flag.StringVar(&FlagSendAddr, "b", "localhost:8080", "seneder address and port to run server")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
-	flag.StringVar(&FlagFileStore, "f", "tmp/short-url-db.json", "folder and path where to store data")
+	flag.StringVar(&FlagFileStore, "f", "/tmp/short-url-db.json", "folder and path where to store data")
+
+	//flag.StringVar(&FlagFileStore, "f", "./tmp/YyHvN0A", "folder and path where to store data")
 
 	flag.Parse()
 }

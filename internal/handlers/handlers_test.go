@@ -17,11 +17,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var fileName string = "/../tmp/short-url-db.json"
+
 func TestGenerateShortener(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	producer, _ := NewProducer("tmp/short-url-db.json")
-	consumer, _ := NewConsumer("tmp/short-url-db.json")
+	producer, _ := NewProducer(fileName)
+	consumer, _ := NewConsumer(fileName)
 	handler := New(store, "localhost:8080", logger, producer, consumer, 1)
 
 	type wants struct {
@@ -81,8 +83,8 @@ func TestGenerateShortener(t *testing.T) {
 func TestGetEndpointByShortener(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	producer, _ := NewProducer("tmp/short-url-db.json")
-	consumer, _ := NewConsumer("tmp/short-url-db.json")
+	producer, _ := NewProducer(fileName)
+	consumer, _ := NewConsumer(fileName)
 	handler := New(store, "localhost:8080", logger, producer, consumer, 1)
 
 	type wants struct {
@@ -151,8 +153,8 @@ func TestGetEndpointByShortener(t *testing.T) {
 func TestGenerateJSONShortener(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	producer, _ := NewProducer("tmp/short-url-db.json")
-	consumer, _ := NewConsumer("tmp/short-url-db.json")
+	producer, _ := NewProducer(fileName)
+	consumer, _ := NewConsumer(fileName)
 	handler := New(store, "localhost:8080", logger, producer, consumer, 1)
 
 	type wants struct {
@@ -222,8 +224,8 @@ func TestGenerateJSONShortener(t *testing.T) {
 func TestCompressor(t *testing.T) {
 	store := storage.New()
 	logger := NewLogger()
-	producer, _ := NewProducer("tmp/short-url-db.json")
-	consumer, _ := NewConsumer("tmp/short-url-db.json")
+	producer, _ := NewProducer(fileName)
+	consumer, _ := NewConsumer(fileName)
 	handler := New(store, "localhost:8080", logger, producer, consumer, 1)
 
 	ts := httptest.NewServer(handler.InitRouter())
