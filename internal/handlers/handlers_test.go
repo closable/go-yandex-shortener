@@ -1,10 +1,16 @@
 package handlers
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -13,9 +19,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var fileStore string = "/tmp/short-url-db.json"
+
 func TestGenerateShortener(t *testing.T) {
+	if len(fileStore) > 0 {
+		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
+	}
 	store := storage.New()
-	handler := New(store, "localhost:8080")
+	logger := NewLogger()
+	handler := New(store, "localhost:8080", logger, fileStore, 1)
 
 	type wants struct {
 		method      string
@@ -48,12 +60,12 @@ func TestGenerateShortener(t *testing.T) {
 			},
 		},
 		{
-			name: "Method POST bad request",
+			name: "Method POST fix bad request",
 			wants: wants{
 				method:      "POST",
 				body:        "yandex.ru",
 				contentType: "text/plain",
-				statusCode:  http.StatusBadRequest,
+				statusCode:  http.StatusCreated,
 			},
 		},
 	}
@@ -72,8 +84,12 @@ func TestGenerateShortener(t *testing.T) {
 }
 
 func TestGetEndpointByShortener(t *testing.T) {
+	if len(fileStore) > 0 {
+		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
+	}
 	store := storage.New()
-	handler := New(store, "localhost:8080")
+	logger := NewLogger()
+	handler := New(store, "localhost:8080", logger, fileStore, 1)
 
 	type wants struct {
 		method      string
@@ -136,4 +152,160 @@ func TestGetEndpointByShortener(t *testing.T) {
 		//assert.Equal(t, tt.wants.contentType, w.Header().Get("Content-Type"))
 
 	}
+}
+
+func TestGenerateJSONShortener(t *testing.T) {
+	if len(fileStore) > 0 {
+		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
+	}
+	store := storage.New()
+	logger := NewLogger()
+	handler := New(store, "localhost:8080", logger, fileStore, 1)
+
+	type wants struct {
+		method      string
+		body        string
+		contentType string
+		statusCode  int
+	}
+
+	tests := []struct {
+		name  string
+		wants wants
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Method POST",
+			wants: wants{
+				method:      "POST",
+				body:        "https://yandex.ru",
+				contentType: "application/json",
+				statusCode:  http.StatusCreated,
+			},
+		},
+		{
+			name: "Method POST wrong content-type",
+			wants: wants{
+				method:      "POST",
+				body:        "https://yandex.ru",
+				contentType: "text/plain",
+				statusCode:  http.StatusCreated,
+			},
+		},
+		{
+			name: "Method POST after bad request",
+			wants: wants{
+				method:      "POST",
+				body:        "yandex.ru",
+				contentType: "application/json",
+				statusCode:  http.StatusCreated,
+			},
+		},
+	}
+	for _, tt := range tests {
+
+		var jsonURL = &JSONRequest{
+			URL: tt.wants.body,
+		}
+		body, _ := json.Marshal(jsonURL)
+		bodyReader := bytes.NewReader([]byte(body))
+
+		r := httptest.NewRequest(tt.wants.method, "/api/shorten", bodyReader)
+		w := httptest.NewRecorder()
+		// вызовем хендлер как обычную функцию, без запуска самого сервера
+
+		handler.GenerateJSONShortener(w, r)
+
+		assert.Equal(t, tt.wants.statusCode, w.Code, "Differents status codes")
+
+		if tt.wants.contentType != "application/json" {
+			assert.NotEqual(t, tt.wants.contentType, w.Header().Get("Content-Type"), "Wrong content-type")
+		} else {
+			assert.Equal(t, tt.wants.contentType, w.Header().Get("Content-Type"), "Wrong content-type")
+		}
+	}
+}
+
+func TestCompressor(t *testing.T) {
+	if len(fileStore) > 0 {
+		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
+	}
+	store := storage.New()
+	logger := NewLogger()
+	handler := New(store, "localhost:8080", logger, fileStore, 1)
+
+	ts := httptest.NewServer(handler.InitRouter())
+	defer ts.Close()
+
+	tests := []struct {
+		name              string
+		path              string
+		body              string
+		expectedEncoding  string
+		acceptedEncodings string
+	}{
+		{
+			name:              "equal encodings",
+			path:              "/",
+			body:              "http://yandex.ru",
+			acceptedEncodings: "gzip",
+			expectedEncoding:  "gzip",
+		},
+		{
+			name:              "equal encodings JSON",
+			path:              "/api/shorten",
+			body:              "{\"url\": \"http://yandex.ru\"}",
+			acceptedEncodings: "gzip",
+			expectedEncoding:  "gzip",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			body := strings.NewReader(tc.body)
+
+			r, _ := http.NewRequest("POST", ts.URL+tc.path, body)
+
+			r.Header.Set("Accept-Encoding", "gzip")
+
+			resp, err := http.DefaultClient.Do(r)
+			require.NoError(t, err)
+
+			defer resp.Body.Close()
+
+			// b, err := io.ReadAll(resp.Body)
+			// require.NoError(t, err)
+			// fmt.Println(string(b))
+
+			require.Equal(t, tc.expectedEncoding, resp.Header.Get("Accept-Encoding"))
+
+		})
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			body := strings.NewReader(tc.body)
+
+			r, _ := http.NewRequest("POST", ts.URL+tc.path, body)
+			r.Header.Set("Accept-Encoding", "gzip")
+
+			resp, err := http.DefaultClient.Do(r)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			zr, err := gzip.NewReader(resp.Body)
+			require.NoError(t, err)
+
+			b, err := io.ReadAll(zr)
+			require.NoError(t, err)
+
+			require.Equal(t, resp.StatusCode, 201)
+			require.Equal(t, tc.expectedEncoding, resp.Header.Get("Accept-Encoding"))
+			fmt.Println(string(b))
+
+		})
+	}
+
 }

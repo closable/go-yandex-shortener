@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/closable/go-yandex-shortener/internal/config"
 	"github.com/closable/go-yandex-shortener/internal/handlers"
@@ -17,10 +18,15 @@ func main() {
 
 func run() error {
 	cfg := config.LoadConfig()
+	if len(cfg.FileStore) > 0 {
+		os.MkdirAll(filepath.Dir(cfg.FileStore), os.ModePerm)
+	}
 	store := storage.New()
-	handler := handlers.New(store, cfg.BaseURL)
+	logger := handlers.NewLogger()
+	sugar := *logger.Sugar()
 
-	fmt.Println("Running server on", cfg.ServerAddress)
-
+	handler := handlers.New(store, cfg.BaseURL, logger, cfg.FileStore, 1)
+	sugar.Infoln("File store path", cfg.FileStore)
+	sugar.Infoln("Running server on", cfg.ServerAddress)
 	return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())
 }
