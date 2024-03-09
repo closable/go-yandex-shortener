@@ -27,10 +27,11 @@ func run() error {
 	logger := handlers.NewLogger()
 	sugar := *logger.Sugar()
 
+	sugar.Infoln("DSN configure ", cfg.DSN)
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, cfg.DSN)
 	if err != nil {
-		sugar.Panicln("Unable to connection to database")
+		sugar.Panicln("Unable to connection to database", err)
 		os.Exit(1)
 	}
 	defer conn.Close(ctx)

@@ -28,13 +28,11 @@ func (uh URLHandler) CheckBaseActivity(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		resp, _ := json.Marshal(createRespondBody(connErr))
 		w.Write([]byte(resp))
-		if err != nil {
-			sugar.Infoln(
-				"uri", r.RequestURI,
-				"method", r.Method,
-				"description", connErr,
-			)
-		}
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", connErr,
+		)
 		return
 	}
 

@@ -50,14 +50,14 @@ func LoadConfig() *config {
 	if len(configEnv.ServerAddress) > 0 {
 		config.ServerAddress = configEnv.ServerAddress
 	}
-	if len(FlagRunAddr) > 0 {
+	if len(configEnv.ServerAddress) == 0 && len(FlagRunAddr) > 0 {
 		config.ServerAddress = FlagRunAddr
 	}
 
 	if len(configEnv.BaseURL) > 0 {
 		config.BaseURL = configEnv.BaseURL
 	}
-	if len(FlagSendAddr) > 0 {
+	if len(configEnv.BaseURL) == 0 && len(FlagSendAddr) > 0 {
 		config.BaseURL = FlagSendAddr
 	}
 
