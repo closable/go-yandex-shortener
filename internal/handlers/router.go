@@ -14,6 +14,8 @@ func (uh *URLHandler) InitRouter() chi.Router {
 
 	router.Post("/", uh.GenerateShortener)
 	router.Get("/{id}", uh.GetEndpointByShortener)
+	router.Get("/ping", uh.CheckBaseActivity)
+	router.Get("/ping/close", uh.CloseBaseActivity)
 	router.Post("/api/shorten", uh.GenerateJSONShortener)
 
 	return router

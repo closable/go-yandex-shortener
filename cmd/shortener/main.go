@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 	"github.com/closable/go-yandex-shortener/internal/config"
 	"github.com/closable/go-yandex-shortener/internal/handlers"
 	"github.com/closable/go-yandex-shortener/internal/storage"
+	"github.com/jackc/pgx/v5"
 )
 
 func main() {
@@ -25,7 +27,15 @@ func run() error {
 	logger := handlers.NewLogger()
 	sugar := *logger.Sugar()
 
-	handler := handlers.New(store, cfg.BaseURL, logger, cfg.FileStore, 1)
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, cfg.DSN)
+	if err != nil {
+		sugar.Panicln("Unable to connection to database")
+		os.Exit(1)
+	}
+	defer conn.Close(ctx)
+
+	handler := handlers.New(store, cfg.BaseURL, logger, cfg.FileStore, conn, ctx, 1)
 	sugar.Infoln("File store path", cfg.FileStore)
 	sugar.Infoln("Running server on", cfg.ServerAddress)
 	return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())

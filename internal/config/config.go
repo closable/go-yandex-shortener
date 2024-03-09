@@ -12,12 +12,14 @@ type config struct {
 	//BaseURL       string `env:"BASE_URL" envDefault:"localhost:8080"`
 	BaseURL   string `env:"BASE_URL"`
 	FileStore string `env:"FILE_STORAGE_PATH"`
+	DSN       string `env:"DATABASE_DSN"`
 }
 
 var (
 	FlagRunAddr   string
 	FlagSendAddr  string
 	FlagFileStore string
+	FlagDSN       string
 	configEnv     = config{}
 )
 
@@ -35,8 +37,7 @@ func ParseFlags() {
 	flag.StringVar(&FlagSendAddr, "b", "localhost:8080", "seneder address and port to run server")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.StringVar(&FlagFileStore, "f", "/tmp/short-url-db.json", "folder and path where to store data")
-
-	//flag.StringVar(&FlagFileStore, "f", "./tmp/YyHvN0A", "folder and path where to store data")
+	flag.StringVar(&FlagDSN, "d", "postgres://postgres:1303@localhost:5432/postgres", "access to DBMS")
 
 	flag.Parse()
 }
@@ -67,6 +68,13 @@ func LoadConfig() *config {
 	}
 	if len(configEnv.FileStore) == 0 && len(FlagFileStore) > 0 {
 		config.FileStore = FlagFileStore
+	}
+
+	if len(configEnv.DSN) > 0 {
+		config.DSN = configEnv.DSN
+	}
+	if len(configEnv.DSN) == 0 && len(FlagDSN) > 0 {
+		config.DSN = FlagDSN
 	}
 
 	return config

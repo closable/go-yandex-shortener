@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/closable/go-yandex-shortener/internal/utils"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -27,6 +29,8 @@ type (
 		baseURL   string
 		logger    zap.Logger
 		fileStore string
+		conn      *pgx.Conn
+		ctx       context.Context
 		maxLength int64
 	}
 	JSONRequest struct {
@@ -44,7 +48,7 @@ var (
 	notFoundID = "Error! id is not found or empty"
 )
 
-func New(st Storager, baseURL string, logger zap.Logger, fileStore string, maxLength int64) *URLHandler {
+func New(st Storager, baseURL string, logger zap.Logger, fileStore string, conn *pgx.Conn, ctx context.Context, maxLength int64) *URLHandler {
 	// load stored data
 	if len(fileStore) > 0 {
 		consumer, err := NewConsumer(fileStore)
@@ -60,6 +64,8 @@ func New(st Storager, baseURL string, logger zap.Logger, fileStore string, maxLe
 		baseURL:   baseURL,
 		logger:    logger,
 		fileStore: fileStore,
+		conn:      conn,
+		ctx:       ctx,
 		maxLength: maxLength, // will compress if content-length > maxLength
 	}
 }
@@ -148,14 +154,6 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if !(utils.ValidateURL(string(info))) {
-		// w.WriteHeader(http.StatusBadRequest)
-		// w.Write([]byte(errURL))
-		// sugar.Infoln(
-		// 	"uri", r.RequestURI,
-		// 	"method", r.Method,
-		// 	"description", errURL,
-		// )
-		// return
 		// change behaviour when requeust doesn't have the protocol 26-02-24
 		info = []byte(fmt.Sprintf("http://%s", info))
 	}
@@ -265,16 +263,6 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 	}
 	// check valid url
 	if !(utils.ValidateURL(jsonURL.URL)) {
-		// resp, _ := json.Marshal(createRespondBody(errURL))
-		// w.WriteHeader(http.StatusBadRequest)
-		// w.Write([]byte(resp))
-		// sugar.Infoln(
-		// 	"uri", r.RequestURI,
-		// 	"method", r.Method,
-		// 	"description", errURL,
-		// )
-		// return
-
 		// change behaviour when requeust doesn't have the protocol 26-02-24
 		jsonURL.URL = "http://" + jsonURL.URL
 	}
