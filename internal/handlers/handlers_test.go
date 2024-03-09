@@ -3,31 +3,34 @@ package handlers
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/closable/go-yandex-shortener/internal/storage"
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var fileStore string = "/tmp/short-url-db.json"
+var DSN = "postgres://postgres:1303@localhost:5432/postgres"
 
 func TestGenerateShortener(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
+
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	ctx := context.Background()
+	conn, _ := pgx.Connect(ctx, DSN)
+	defer conn.Close(ctx)
+
+	handler := New(store, "localhost:8080", logger, fileStore, conn, ctx, 1)
 
 	type wants struct {
 		method      string
@@ -84,12 +87,14 @@ func TestGenerateShortener(t *testing.T) {
 }
 
 func TestGetEndpointByShortener(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
+
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	ctx := context.Background()
+	conn, _ := pgx.Connect(ctx, DSN)
+	defer conn.Close(ctx)
+
+	handler := New(store, "localhost:8080", logger, fileStore, conn, ctx, 1)
 
 	type wants struct {
 		method      string
@@ -155,12 +160,13 @@ func TestGetEndpointByShortener(t *testing.T) {
 }
 
 func TestGenerateJSONShortener(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	ctx := context.Background()
+	conn, _ := pgx.Connect(ctx, DSN)
+	defer conn.Close(ctx)
+
+	handler := New(store, "localhost:8080", logger, fileStore, conn, ctx, 1)
 
 	type wants struct {
 		method      string
@@ -227,12 +233,14 @@ func TestGenerateJSONShortener(t *testing.T) {
 }
 
 func TestCompressor(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
+
 	store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	ctx := context.Background()
+	conn, _ := pgx.Connect(ctx, DSN)
+	defer conn.Close(ctx)
+
+	handler := New(store, "localhost:8080", logger, fileStore, conn, ctx, 1)
 
 	ts := httptest.NewServer(handler.InitRouter())
 	defer ts.Close()
@@ -308,4 +316,63 @@ func TestCompressor(t *testing.T) {
 		})
 	}
 
+}
+
+func TestCheckBaseActivity(t *testing.T) {
+	store := storage.New()
+	logger := NewLogger()
+	ctx := context.Background()
+	conn, _ := pgx.Connect(ctx, DSN)
+	defer conn.Close(ctx)
+
+	handler := New(store, "localhost:8080", logger, fileStore, conn, ctx, 1)
+
+	type wants struct {
+		method      string
+		body        string
+		contentType string
+		statusCode  int
+	}
+
+	tests := []struct {
+		name  string
+		wants wants
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Method GET",
+			wants: wants{
+				method:      "GET",
+				body:        `{"result":"The connection is still alive"}`,
+				contentType: "application/json",
+				statusCode:  http.StatusOK,
+			},
+		},
+		{
+			name: "Method GET with close connection",
+			wants: wants{
+				method:      "GET",
+				body:        `{"result":"The connection was lost"}`,
+				contentType: "application/json",
+				statusCode:  http.StatusInternalServerError,
+			},
+		},
+	}
+	for _, tt := range tests {
+
+		if tt.name == "Method GET with close connection" {
+			conn.Close(ctx)
+		}
+
+		r := httptest.NewRequest(tt.wants.method, "/ping", nil)
+		w := httptest.NewRecorder()
+
+		handler.CheckBaseActivity(w, r)
+
+		body, _ := io.ReadAll(w.Body)
+
+		assert.Equal(t, tt.wants.statusCode, w.Code, "Differents status codes")
+		assert.Equal(t, tt.wants.body, string(body), "Different Bodies")
+
+	}
 }

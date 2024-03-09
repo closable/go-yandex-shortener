@@ -7,12 +7,10 @@ import (
 )
 
 type config struct {
-	//ServerAddress string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
 	ServerAddress string `env:"SERVER_ADDRESS"`
-	//BaseURL       string `env:"BASE_URL" envDefault:"localhost:8080"`
-	BaseURL   string `env:"BASE_URL"`
-	FileStore string `env:"FILE_STORAGE_PATH"`
-	DSN       string `env:"DATABASE_DSN"`
+	BaseURL       string `env:"BASE_URL"`
+	FileStore     string `env:"FILE_STORAGE_PATH"`
+	DSN           string `env:"DATABASE_DSN"`
 }
 
 var (
