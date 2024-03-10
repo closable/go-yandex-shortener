@@ -37,7 +37,7 @@ func ParseFlags() {
 	flag.StringVar(&FlagSendAddr, "b", "localhost:8080", "seneder address and port to run server")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.StringVar(&FlagFileStore, "f", "/tmp/short-url-db.json", "folder and path where to store data")
-	flag.StringVar(&FlagDSN, "d", "postgres://postgres:postgres@localhost:5432/praktikum", "access to DBMS")
+	flag.StringVar(&FlagDSN, "d", "", "'postgres://postgres:1303@localhost:5432/postgres'") //"access to DBMS"
 
 	flag.Parse()
 }
