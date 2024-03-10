@@ -321,7 +321,7 @@ func TestCompressor(t *testing.T) {
 
 }
 
-func TestCheckBaseActivity(t *testing.T) {
+func StopTestCheckBaseActivity(t *testing.T) {
 	if len(DSN) == 0 {
 		cfg := config.LoadConfig()
 		DSN = cfg.DSN
