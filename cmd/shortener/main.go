@@ -28,6 +28,16 @@ func run() error {
 	sugar := *logger.Sugar()
 
 	sugar.Infoln("DSN configure ", cfg.DSN)
+	// db, err := sql.Open("pgx", cfg.DSN)
+	// if err != nil {
+	// 	sugar.Panicln("Unable to connection to database", err)
+	// }
+	// defer db.Close()
+
+	// ctx := context.Background()
+	// conn, err := db.Conn(ctx)
+	// fmt.Printf("%T", conn)
+
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, cfg.DSN)
 	if err != nil {

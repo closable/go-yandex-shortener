@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"strings"
 
 	"github.com/caarlos0/env/v10"
 )
@@ -73,6 +74,9 @@ func LoadConfig() *config {
 	}
 	if len(configEnv.DSN) == 0 && len(FlagDSN) > 0 {
 		config.DSN = FlagDSN
+	}
+	if !strings.Contains(config.DSN, "sslmode") {
+		config.DSN += "?sslmode=disable"
 	}
 
 	return config
