@@ -53,14 +53,12 @@ func LoadConfig() *config {
 	config.FileStore = firstValue(&configEnv.FileStore, &FlagFileStore)
 	config.DSN = firstValue(&configEnv.DSN, &FlagDSN)
 	if !strings.Contains(config.DSN, "sslmode") {
-		config.DSN += "?sslmode=disable"
+		config.DSN = fmt.Sprintf("%s?sslmode=disable", config.DSN)
 	}
-	fmt.Println(config.DSN)
 	return config
 }
 
 func firstValue(valEnv *string, valFlag *string) string {
-	fmt.Println("***", *valEnv, *valFlag)
 	if len(*valEnv) > 0 {
 		return *valEnv
 	}
