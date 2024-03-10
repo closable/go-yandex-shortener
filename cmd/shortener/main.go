@@ -26,17 +26,12 @@ func run() error {
 	sugar := *logger.Sugar()
 
 	sugar.Infoln("DSN configure ", cfg.DSN)
-	// db, err := sql.Open("pgx", cfg.DSN)
-	// if err != nil {
-	// 	sugar.Panicln("Unable to connection to database", err)
-	// }
-	// defer db.Close()
 
-	// ctx := context.Background()
-	// conn, err := db.Conn(ctx)
-	// fmt.Printf("%T", conn)
-
-	dbms := storage.NewDBMS(cfg.DSN, logger)
+	dbms, err := storage.NewDBMS(cfg.DSN)
+	if err != nil {
+		sugar.Panicln("Unable to connection to database", err)
+		os.Exit(1)
+	}
 
 	handler := handlers.New(store, cfg.BaseURL, logger, cfg.FileStore, dbms, 1)
 	sugar.Infoln("File store path", cfg.FileStore)

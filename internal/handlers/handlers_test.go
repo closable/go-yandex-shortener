@@ -30,7 +30,7 @@ func TestGenerateShortener(t *testing.T) {
 
 	store := storage.New()
 	logger := NewLogger()
-	dbms := storage.NewDBMS(DSN, logger)
+	dbms, _ := storage.NewDBMS(DSN)
 	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
 
 	type wants struct {
@@ -95,7 +95,7 @@ func TestGetEndpointByShortener(t *testing.T) {
 
 	store := storage.New()
 	logger := NewLogger()
-	dbms := storage.NewDBMS(DSN, logger)
+	dbms, _ := storage.NewDBMS(DSN)
 	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
 
 	type wants struct {
@@ -168,7 +168,7 @@ func TestGenerateJSONShortener(t *testing.T) {
 	}
 	store := storage.New()
 	logger := NewLogger()
-	dbms := storage.NewDBMS(DSN, logger)
+	dbms, _ := storage.NewDBMS(DSN)
 	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
 
 	type wants struct {
@@ -242,7 +242,7 @@ func TestCompressor(t *testing.T) {
 	}
 	store := storage.New()
 	logger := NewLogger()
-	dbms := storage.NewDBMS(DSN, logger)
+	dbms, _ := storage.NewDBMS(DSN)
 	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
 
 	ts := httptest.NewServer(handler.InitRouter())
@@ -329,7 +329,7 @@ func TestCheckBaseActivity(t *testing.T) {
 
 	store := storage.New()
 	logger := NewLogger()
-	dbms := storage.NewDBMS(DSN, logger)
+	dbms, _ := storage.NewDBMS(DSN)
 	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
 
 	type wants struct {

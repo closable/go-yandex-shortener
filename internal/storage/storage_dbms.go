@@ -3,10 +3,8 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"go.uber.org/zap"
 )
 
 type StoreDBMS struct {
@@ -14,19 +12,13 @@ type StoreDBMS struct {
 	CTX context.Context
 }
 
-func NewDBMS(connString string, logger zap.Logger) *StoreDBMS {
+func NewDBMS(connString string) (*StoreDBMS, error) {
 	ctx := context.Background()
-	sugar := *logger.Sugar()
-	db, err := sql.Open("pgx", connString)
 
-	if err != nil {
-		sugar.Panicln("Unable to connection to database", err)
-		os.Exit(1)
-	}
-	//defer db.Close()
+	db, err := sql.Open("pgx", connString)
 
 	return &StoreDBMS{
 		DB:  db,
 		CTX: ctx,
-	}
+	}, err
 }
