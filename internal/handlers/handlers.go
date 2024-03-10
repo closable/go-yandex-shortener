@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,8 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/closable/go-yandex-shortener/internal/storage"
 	"github.com/closable/go-yandex-shortener/internal/utils"
-	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -29,8 +28,7 @@ type (
 		baseURL   string
 		logger    zap.Logger
 		fileStore string
-		conn      *pgx.Conn
-		ctx       context.Context
+		dbms      *storage.StoreDBMS
 		maxLength int64
 	}
 	JSONRequest struct {
@@ -48,7 +46,7 @@ var (
 	notFoundID = "Error! id is not found or empty"
 )
 
-func New(st Storager, baseURL string, logger zap.Logger, fileStore string, conn *pgx.Conn, ctx context.Context, maxLength int64) *URLHandler {
+func New(st Storager, baseURL string, logger zap.Logger, fileStore string, dbms *storage.StoreDBMS, maxLength int64) *URLHandler {
 	// load stored data
 	if len(fileStore) > 0 {
 		consumer, err := NewConsumer(fileStore)
@@ -64,8 +62,7 @@ func New(st Storager, baseURL string, logger zap.Logger, fileStore string, conn 
 		baseURL:   baseURL,
 		logger:    logger,
 		fileStore: fileStore,
-		conn:      conn,
-		ctx:       ctx,
+		dbms:      dbms,
 		maxLength: maxLength, // will compress if content-length > maxLength
 	}
 }

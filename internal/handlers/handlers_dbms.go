@@ -10,20 +10,23 @@ var (
 	connErr = "The connection was lost"
 )
 
-func (uh URLHandler) CloseBaseActivity(w http.ResponseWriter, r *http.Request) {
-	uh.conn.Close(uh.ctx)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	resp, _ := json.Marshal(createRespondBody("Connection was closed"))
-	w.Write([]byte(resp))
-
-}
-
 func (uh URLHandler) CheckBaseActivity(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	w.Header().Set("Content-Type", "application/json")
-
-	err := uh.conn.Ping(uh.ctx)
+	conn, err := uh.dbms.DB.Conn(uh.dbms.CTX)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		resp, _ := json.Marshal(createRespondBody(connErr))
+		w.Write([]byte(resp))
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", connErr,
+		)
+		return
+	}
+	defer conn.Close()
+	err = conn.PingContext(uh.dbms.CTX)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		resp, _ := json.Marshal(createRespondBody(connErr))

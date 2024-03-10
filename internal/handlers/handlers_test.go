@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/closable/go-yandex-shortener/internal/config"
 	"github.com/closable/go-yandex-shortener/internal/storage"
-	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,11 +30,8 @@ func TestGenerateShortener(t *testing.T) {
 
 	store := storage.New()
 	logger := NewLogger()
-	ctx := context.Background()
-	conn, _ := pgx.Connect(ctx, DSN)
-	defer conn.Close(ctx)
-
-	handler := New(store, "localhost:8080", logger, fileStore, conn, ctx, 1)
+	dbms := storage.NewDBMS(DSN, logger)
+	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
 
 	type wants struct {
 		method      string
@@ -100,11 +95,8 @@ func TestGetEndpointByShortener(t *testing.T) {
 
 	store := storage.New()
 	logger := NewLogger()
-	ctx := context.Background()
-	conn, _ := pgx.Connect(ctx, DSN)
-	defer conn.Close(ctx)
-
-	handler := New(store, "localhost:8080", logger, fileStore, conn, ctx, 1)
+	dbms := storage.NewDBMS(DSN, logger)
+	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
 
 	type wants struct {
 		method      string
@@ -176,11 +168,8 @@ func TestGenerateJSONShortener(t *testing.T) {
 	}
 	store := storage.New()
 	logger := NewLogger()
-	ctx := context.Background()
-	conn, _ := pgx.Connect(ctx, DSN)
-	defer conn.Close(ctx)
-
-	handler := New(store, "localhost:8080", logger, fileStore, conn, ctx, 1)
+	dbms := storage.NewDBMS(DSN, logger)
+	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
 
 	type wants struct {
 		method      string
@@ -253,11 +242,8 @@ func TestCompressor(t *testing.T) {
 	}
 	store := storage.New()
 	logger := NewLogger()
-	ctx := context.Background()
-	conn, _ := pgx.Connect(ctx, DSN)
-	defer conn.Close(ctx)
-
-	handler := New(store, "localhost:8080", logger, fileStore, conn, ctx, 1)
+	dbms := storage.NewDBMS(DSN, logger)
+	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
 
 	ts := httptest.NewServer(handler.InitRouter())
 	defer ts.Close()
@@ -343,11 +329,8 @@ func TestCheckBaseActivity(t *testing.T) {
 
 	store := storage.New()
 	logger := NewLogger()
-	ctx := context.Background()
-	conn, _ := pgx.Connect(ctx, DSN)
-	defer conn.Close(ctx)
-
-	handler := New(store, "localhost:8080", logger, fileStore, conn, ctx, 1)
+	dbms := storage.NewDBMS(DSN, logger)
+	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
 
 	type wants struct {
 		method      string
@@ -383,7 +366,11 @@ func TestCheckBaseActivity(t *testing.T) {
 	for _, tt := range tests {
 
 		if tt.name == "Method GET with close connection" {
-			conn.Close(ctx)
+			//conn, err := dbms.DB.Conn(dbms.CTX)
+
+			//require.NoError(t, err)
+			//conn.Close()
+			dbms.DB.Close()
 		}
 
 		r := httptest.NewRequest(tt.wants.method, "/ping", nil)
