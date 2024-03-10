@@ -20,7 +20,6 @@ func (dbms *StoreDBMS) GetConn() (*sql.Conn, error) {
 
 func NewDBMS(connString string) (*StoreDBMS, error) {
 	ctx := context.Background()
-
 	db, err := sql.Open("pgx", connString)
 	if err != nil {
 		return nil, err

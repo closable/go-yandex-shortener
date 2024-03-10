@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"strings"
 
 	"github.com/caarlos0/env/v10"
@@ -47,54 +48,19 @@ func LoadConfig() *config {
 	ParseFlags()
 
 	var config = &config{}
-
-	// if len(configEnv.ServerAddress) > 0 {
-	// 	config.ServerAddress = configEnv.ServerAddress
-	// }
-	// if len(configEnv.ServerAddress) == 0 && len(FlagRunAddr) > 0 {
-	// 	config.ServerAddress = FlagRunAddr
-	// }
-
 	config.ServerAddress = firstValue(&configEnv.ServerAddress, &FlagRunAddr)
-
-	// if len(configEnv.BaseURL) > 0 {
-	// 	config.BaseURL = configEnv.BaseURL
-	// }
-	// if len(configEnv.BaseURL) == 0 && len(FlagSendAddr) > 0 {
-	// 	config.BaseURL = FlagSendAddr
-	// }
-
 	config.BaseURL = firstValue(&configEnv.BaseURL, &FlagSendAddr)
-
-	// if len(configEnv.FileStore) > 0 {
-	// 	config.FileStore = configEnv.FileStore
-	// }
-	// if len(configEnv.FileStore) == 0 && len(FlagFileStore) > 0 {
-	// 	config.FileStore = FlagFileStore
-	// }
-
 	config.FileStore = firstValue(&configEnv.FileStore, &FlagFileStore)
-
-	// if len(configEnv.DSN) > 0 {
-	// 	config.DSN = configEnv.DSN
-	// }
-	// if len(configEnv.DSN) == 0 && len(FlagDSN) > 0 {
-	// 	config.DSN = FlagDSN
-	// }
-	// if !strings.Contains(config.DSN, "sslmode") {
-	// 	config.DSN += "?sslmode=disable"
-	// }
-
 	config.DSN = firstValue(&configEnv.DSN, &FlagDSN)
 	if !strings.Contains(config.DSN, "sslmode") {
 		config.DSN += "?sslmode=disable"
 	}
-	//fmt.Println(config)
-	config.DSN = "postgres://postgres:praktikum@localhost:5432/db?sslmode=disable"
+	fmt.Println(config.DSN)
 	return config
 }
 
 func firstValue(valEnv *string, valFlag *string) string {
+	fmt.Println("***", *valEnv, *valFlag)
 	if len(*valEnv) > 0 {
 		return *valEnv
 	}
