@@ -3,7 +3,6 @@ package config
 import (
 	"flag"
 	"fmt"
-	"strings"
 
 	"github.com/caarlos0/env/v10"
 )
@@ -52,9 +51,10 @@ func LoadConfig() *config {
 	config.BaseURL = firstValue(&configEnv.BaseURL, &FlagSendAddr)
 	config.FileStore = firstValue(&configEnv.FileStore, &FlagFileStore)
 	config.DSN = firstValue(&configEnv.DSN, &FlagDSN)
-	if !strings.Contains(config.DSN, "sslmode") {
-		config.DSN = fmt.Sprintf("%s?sslmode=disable", config.DSN)
-	}
+	// if !strings.Contains(config.DSN, "sslmode") {
+	// 	config.DSN = fmt.Sprintf("%s?sslmode=disable", config.DSN)
+	// }
+	fmt.Println(configEnv.DSN, FlagDSN)
 	return config
 }
 
