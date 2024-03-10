@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"fmt"
 	"strings"
 
 	"github.com/caarlos0/env/v10"
@@ -37,7 +36,7 @@ func ParseFlags() {
 	flag.StringVar(&FlagSendAddr, "b", "localhost:8080", "seneder address and port to run server")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.StringVar(&FlagFileStore, "f", "/tmp/short-url-db.json", "folder and path where to store data")
-	flag.StringVar(&FlagDSN, "d", "postgres://postgres:130@localhost:5432/postgres", "access to DBMS")
+	flag.StringVar(&FlagDSN, "d", "postgres://postgres:1303@localhost:5432/postgres", "access to DBMS")
 
 	flag.Parse()
 }
@@ -90,7 +89,8 @@ func LoadConfig() *config {
 	if !strings.Contains(config.DSN, "sslmode") {
 		config.DSN += "?sslmode=disable"
 	}
-	fmt.Println(config)
+	//fmt.Println(config)
+	config.DSN = "postgres://postgres:praktikum@localhost:5432/db?sslmode=disable"
 	return config
 }
 
