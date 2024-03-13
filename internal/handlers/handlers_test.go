@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/closable/go-yandex-shortener/internal/config"
 	"github.com/closable/go-yandex-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,10 +22,10 @@ var fileStore string = "/tmp/short-url-db.json"
 var DSN string = ""
 
 func TestGenerateShortener(t *testing.T) {
-	if len(DSN) == 0 {
-		cfg := config.LoadConfig()
-		DSN = cfg.DSN
-	}
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
 
 	logger := NewLogger()
 	// store, _ := storage.NewDBMS(DSN)
@@ -90,10 +89,10 @@ func TestGenerateShortener(t *testing.T) {
 }
 
 func TestGetEndpointByShortener(t *testing.T) {
-	if len(DSN) == 0 {
-		cfg := config.LoadConfig()
-		DSN = cfg.DSN
-	}
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
 
 	//store := storage.New()
 	logger := NewLogger()
@@ -166,11 +165,11 @@ func TestGetEndpointByShortener(t *testing.T) {
 }
 
 func TestGenerateJSONShortener(t *testing.T) {
-	if len(DSN) == 0 {
-		cfg := config.LoadConfig()
-		DSN = cfg.DSN
-	}
-	//store := storage.New()
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
 	logger := NewLogger()
 	// store, _ := storage.NewDBMS(DSN)
 	// store, _ := storage.NewFile(fileStore)
@@ -242,11 +241,11 @@ func TestGenerateJSONShortener(t *testing.T) {
 }
 
 func TestCompressor(t *testing.T) {
-	if len(DSN) == 0 {
-		cfg := config.LoadConfig()
-		DSN = cfg.DSN
-	}
-	// store := storage.New()
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
 	logger := NewLogger()
 	// store, _ := storage.NewDBMS(DSN)
 	// store, _ := storage.NewFile(fileStore)

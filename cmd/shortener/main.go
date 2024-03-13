@@ -24,7 +24,7 @@ func run() error {
 	var store handlers.Storager
 	var err error
 
-	var storeMsg string = ""
+	var storeMsg string
 	if len(cfg.DSN) > 0 {
 		store, err = storage.NewDBMS(cfg.DSN)
 		storeMsg = fmt.Sprintf("Store DBMS setup successfuly -> %s", cfg.DSN)
