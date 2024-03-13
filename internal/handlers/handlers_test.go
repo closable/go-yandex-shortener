@@ -29,9 +29,9 @@ func TestGenerateShortener(t *testing.T) {
 	}
 
 	logger := NewLogger()
-	store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewDBMS(DSN)
 	// store, _ := storage.NewFile(fileStore)
-	// store, _ := storage.NewMemory()
+	store, _ := storage.NewMemory()
 	handler := New(store, "localhost:8080", logger, 1)
 
 	type wants struct {
