@@ -62,7 +62,7 @@ func (dbms *StoreDBMS) GetShortener(url string) string {
 // get shortener by url
 func (dbms *StoreDBMS) FindExistingKey(key string) (string, bool) {
 	sql := "SELECT url FROM ya.shortener WHERE key = $1"
-	var url string = ""
+	var url string
 
 	err := dbms.DB.QueryRowContext(dbms.CTX, sql, key).Scan(&url)
 	if err != nil {
@@ -74,7 +74,7 @@ func (dbms *StoreDBMS) FindExistingKey(key string) (string, bool) {
 
 func (dbms *StoreDBMS) FindKeyByValue(url string) (string, bool) {
 	sql := "SELECT key FROM ya.shortener WHERE url = $1"
-	var key string = ""
+	var key string
 
 	err := dbms.DB.QueryRowContext(dbms.CTX, sql, url).Scan(&key)
 	if err != nil {
