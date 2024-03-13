@@ -7,10 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"strings"
 
-	"github.com/closable/go-yandex-shortener/internal/storage"
 	"github.com/closable/go-yandex-shortener/internal/utils"
 	"go.uber.org/zap"
 )
@@ -18,8 +15,8 @@ import (
 type Storager interface {
 	GetShortener(txtURL string) string
 	FindExistingKey(keyText string) (string, bool)
-	Length() int
-	AddItem(key string, url string)
+	Ping() bool
+	PrepareStore()
 }
 
 type (
@@ -27,8 +24,6 @@ type (
 		store     Storager
 		baseURL   string
 		logger    zap.Logger
-		fileStore string
-		dbms      *storage.StoreDBMS
 		maxLength int64
 	}
 	JSONRequest struct {
@@ -46,23 +41,22 @@ var (
 	notFoundID = "Error! id is not found or empty"
 )
 
-func New(st Storager, baseURL string, logger zap.Logger, fileStore string, dbms *storage.StoreDBMS, maxLength int64) *URLHandler {
+func New(st Storager, baseURL string, logger zap.Logger, maxLength int64) *URLHandler {
+	st.PrepareStore()
 	// load stored data
-	if len(fileStore) > 0 {
-		consumer, err := NewConsumer(fileStore)
-		if err != nil {
-			logger.Fatal("File not found")
-		}
-		defer consumer.file.Close()
-		loadDataFromFile(st, consumer.file)
-	}
+	// if len(fileStore) > 0 {
+	// 	consumer, err := NewConsumer(fileStore)
+	// 	if err != nil {
+	// 		logger.Fatal("File not found")
+	// 	}
+	// 	defer consumer.file.Close()
+	// 	loadDataFromFile(st, consumer.file)
+	// }
 
 	return &URLHandler{
 		store:     st,
 		baseURL:   baseURL,
 		logger:    logger,
-		fileStore: fileStore,
-		dbms:      dbms,
 		maxLength: maxLength, // will compress if content-length > maxLength
 	}
 }
@@ -86,26 +80,6 @@ type (
 		responseData        *responseData
 	}
 )
-
-func loadDataFromFile(st Storager, file *os.File) error {
-	body, err := io.ReadAll(file)
-	if err != nil {
-		return err
-	}
-
-	rows := strings.Split(string(body), "\n")
-
-	for _, v := range rows {
-		event := &Event{}
-		err := json.Unmarshal([]byte(v), event)
-		if err != nil {
-			file.Close()
-			break
-		}
-		st.AddItem(event.ShortURL, event.OriginlURL)
-	}
-	return nil
-}
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter
@@ -154,6 +128,7 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 		// change behaviour when requeust doesn't have the protocol 26-02-24
 		info = []byte(fmt.Sprintf("http://%s", info))
 	}
+
 	shortener = uh.store.GetShortener(string(info))
 
 	w.Header().Set("Content-Type", "text/plain")
@@ -166,22 +141,6 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 		body = fmt.Sprintf("http://%s/%s", uh.baseURL, shortener)
 	} else {
 		body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
-	}
-
-	if len(uh.fileStore) > 0 {
-		producer, err := NewProducer(uh.fileStore)
-		if err != nil {
-			sugar.Fatal(err)
-		}
-
-		defer producer.Close()
-		if err := producer.WriteEvent(&Event{
-			UUID:       uint(uh.store.Length()),
-			ShortURL:   shortener,
-			OriginlURL: string(info),
-		}); err != nil {
-			sugar.Fatal(err)
-		}
 	}
 
 	w.Write([]byte(body))
@@ -206,7 +165,7 @@ func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Requ
 	}
 	shortener = path[1:]
 	url, ok := uh.store.FindExistingKey(shortener)
-
+	fmt.Println(shortener, url, ok)
 	if !ok || len(shortener) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(notFoundID))
@@ -285,21 +244,6 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 			"description", errURL,
 		)
 		return
-	}
-
-	if len(uh.fileStore) > 0 {
-		producer, err := NewProducer(uh.fileStore)
-		if err != nil {
-			sugar.Fatal(err)
-		}
-		defer producer.Close()
-		if err := producer.WriteEvent(&Event{
-			UUID:       uint(uh.store.Length()),
-			ShortURL:   shortener,
-			OriginlURL: jsonURL.URL,
-		}); err != nil {
-			sugar.Fatal(err)
-		}
 	}
 
 	w.WriteHeader(http.StatusCreated)

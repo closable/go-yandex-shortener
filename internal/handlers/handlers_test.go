@@ -28,10 +28,11 @@ func TestGenerateShortener(t *testing.T) {
 		DSN = cfg.DSN
 	}
 
-	store := storage.New()
 	logger := NewLogger()
-	dbms, _ := storage.NewDBMS(DSN)
-	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
+	store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	// store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	type wants struct {
 		method      string
@@ -73,6 +74,7 @@ func TestGenerateShortener(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		bodyReader := strings.NewReader(tt.wants.body)
 
@@ -93,10 +95,12 @@ func TestGetEndpointByShortener(t *testing.T) {
 		DSN = cfg.DSN
 	}
 
-	store := storage.New()
+	//store := storage.New()
 	logger := NewLogger()
-	dbms, _ := storage.NewDBMS(DSN)
-	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	type wants struct {
 		method      string
@@ -166,10 +170,12 @@ func TestGenerateJSONShortener(t *testing.T) {
 		cfg := config.LoadConfig()
 		DSN = cfg.DSN
 	}
-	store := storage.New()
+	//store := storage.New()
 	logger := NewLogger()
-	dbms, _ := storage.NewDBMS(DSN)
-	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	type wants struct {
 		method      string
@@ -240,10 +246,12 @@ func TestCompressor(t *testing.T) {
 		cfg := config.LoadConfig()
 		DSN = cfg.DSN
 	}
-	store := storage.New()
+	// store := storage.New()
 	logger := NewLogger()
-	dbms, _ := storage.NewDBMS(DSN)
-	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	ts := httptest.NewServer(handler.InitRouter())
 	defer ts.Close()
@@ -319,69 +327,4 @@ func TestCompressor(t *testing.T) {
 		})
 	}
 
-}
-
-func StopTestCheckBaseActivity(t *testing.T) {
-	if len(DSN) == 0 {
-		cfg := config.LoadConfig()
-		DSN = cfg.DSN
-	}
-
-	store := storage.New()
-	logger := NewLogger()
-	dbms, _ := storage.NewDBMS(DSN)
-	handler := New(store, "localhost:8080", logger, fileStore, dbms, 1)
-
-	type wants struct {
-		method      string
-		body        string
-		contentType string
-		statusCode  int
-	}
-
-	tests := []struct {
-		name  string
-		wants wants
-	}{
-		// TODO: Add test cases.
-		{
-			name: "Method GET",
-			wants: wants{
-				method:      "GET",
-				body:        `{"result":"The connection is still alive"}`,
-				contentType: "application/json",
-				statusCode:  http.StatusOK,
-			},
-		},
-		{
-			name: "Method GET with close connection",
-			wants: wants{
-				method:      "GET",
-				body:        `{"result":"The connection was lost"}`,
-				contentType: "application/json",
-				statusCode:  http.StatusInternalServerError,
-			},
-		},
-	}
-	for _, tt := range tests {
-
-		if tt.name == "Method GET with close connection" {
-			//conn, err := dbms.DB.Conn(dbms.CTX)
-
-			//require.NoError(t, err)
-			//conn.Close()
-			dbms.DB.Close()
-		}
-
-		r := httptest.NewRequest(tt.wants.method, "/ping", nil)
-		w := httptest.NewRecorder()
-
-		handler.CheckBaseActivity(w, r)
-
-		body, _ := io.ReadAll(w.Body)
-
-		assert.Equal(t, tt.wants.statusCode, w.Code, "Differents status codes")
-		assert.Equal(t, tt.wants.body, string(body), "Different Bodies")
-
-	}
 }

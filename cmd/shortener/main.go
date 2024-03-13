@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/closable/go-yandex-shortener/internal/config"
 	"github.com/closable/go-yandex-shortener/internal/handlers"
@@ -18,23 +18,32 @@ func main() {
 
 func run() error {
 	cfg := config.LoadConfig()
-	if len(cfg.FileStore) > 0 {
-		os.MkdirAll(filepath.Dir(cfg.FileStore), os.ModePerm)
-	}
-	store := storage.New()
 	logger := handlers.NewLogger()
 	sugar := *logger.Sugar()
 
-	sugar.Infoln("DSN configure ", cfg.DSN)
+	var store handlers.Storager
+	var err error
 
-	dbms, err := storage.NewDBMS(cfg.DSN)
+	var storeMsg string = ""
+	if len(cfg.DSN) > 0 {
+		store, err = storage.NewDBMS(cfg.DSN)
+		storeMsg = fmt.Sprintf("Store DBMS setup successfuly -> %s", cfg.DSN)
+	} else if len(cfg.FileStore) > 0 {
+		store, err = storage.NewFile(cfg.FileStore)
+		storeMsg = fmt.Sprintf("Store File setup successfuly -> %s", cfg.FileStore)
+	} else {
+		store, err = storage.NewMemory()
+		storeMsg = fmt.Sprintf("Store Memory setup successfuly -> %s", "default")
+	}
+
 	if err != nil {
-		sugar.Panicln("Unable to connection to database", err)
+		sugar.Panicln("Store invalid")
 		os.Exit(1)
 	}
 
-	handler := handlers.New(store, cfg.BaseURL, logger, cfg.FileStore, dbms, 1)
-	sugar.Infoln("File store path", cfg.FileStore)
+	handler := handlers.New(store, cfg.BaseURL, logger, 1)
+
+	sugar.Infoln(storeMsg)
 	sugar.Infoln("Running server on", cfg.ServerAddress)
 	return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())
 }

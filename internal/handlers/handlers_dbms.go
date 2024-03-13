@@ -13,28 +13,16 @@ var (
 func (uh URLHandler) CheckBaseActivity(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	w.Header().Set("Content-Type", "application/json")
-	conn, err := uh.dbms.GetConn()
-	if err != nil {
+	ok := uh.store.Ping()
+
+	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
 		resp, _ := json.Marshal(createRespondBody(connErr))
 		w.Write([]byte(resp))
 		sugar.Infoln(
 			"uri", r.RequestURI,
 			"method", r.Method,
-			"description", err,
-		)
-		return
-	}
-	defer conn.Close()
-	err = conn.PingContext(uh.dbms.CTX)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		resp, _ := json.Marshal(createRespondBody(connErr))
-		w.Write([]byte(resp))
-		sugar.Infoln(
-			"uri", r.RequestURI,
-			"method", r.Method,
-			"description", err, //connErr,
+			"description", connErr,
 		)
 		return
 	}
@@ -47,8 +35,6 @@ func (uh URLHandler) CheckBaseActivity(w http.ResponseWriter, r *http.Request) {
 			"description", connOk,
 		)
 	}
-
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(resp))
-
 }
