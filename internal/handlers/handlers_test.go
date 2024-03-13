@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -21,13 +19,19 @@ import (
 
 var fileStore string = "/tmp/short-url-db.json"
 
+var DSN string = ""
+
 func TestGenerateShortener(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
-	store := storage.New()
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	type wants struct {
 		method      string
@@ -69,6 +73,7 @@ func TestGenerateShortener(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		bodyReader := strings.NewReader(tt.wants.body)
 
@@ -84,12 +89,17 @@ func TestGenerateShortener(t *testing.T) {
 }
 
 func TestGetEndpointByShortener(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
-	store := storage.New()
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
+	//store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	type wants struct {
 		method      string
@@ -155,12 +165,16 @@ func TestGetEndpointByShortener(t *testing.T) {
 }
 
 func TestGenerateJSONShortener(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
-	store := storage.New()
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	type wants struct {
 		method      string
@@ -227,12 +241,16 @@ func TestGenerateJSONShortener(t *testing.T) {
 }
 
 func TestCompressor(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
-	store := storage.New()
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	ts := httptest.NewServer(handler.InitRouter())
 	defer ts.Close()

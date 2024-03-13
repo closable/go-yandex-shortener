@@ -6,26 +6,22 @@ import (
 	"github.com/closable/go-yandex-shortener/internal/utils"
 )
 
-// var Storage = struct {
-// 	mu   sync.Mutex
-// 	Urls map[string]string
-// }{Urls: make(map[string]string)}
-
 type Store struct {
 	mu   sync.Mutex
 	Urls map[string]string
 }
 
-func New() *Store {
-	return &Store{Urls: make(map[string]string)}
+func NewMemory() (*Store, error) {
+	return &Store{Urls: make(map[string]string)}, nil
 }
 
 func (s *Store) Length() int {
 	return len(s.Urls)
 }
 
-func (s *Store) AddItem(key string, url string) {
+func (s *Store) AddItem(key string, url string) (string, error) {
 	s.Urls[key] = url
+	return key, nil
 }
 
 func (s *Store) GetShortener(txtURL string) string {
@@ -67,3 +63,10 @@ func (s *Store) FindExistingKey(keyText string) (string, bool) {
 
 	return value, ok
 }
+
+func (s *Store) Ping() bool {
+	s.Urls["ping"] = "ping"
+	return s.Urls["ping"] == "ping"
+}
+
+func (s *Store) PrepareStore() {}
