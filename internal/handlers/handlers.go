@@ -33,12 +33,12 @@ type (
 		Result string `json:"result"`
 	}
 	JSONBatch struct {
-		CorrelationId string `json:"correlation_id"`
-		OriginalUrl   string `json:"original_url"`
+		CorrelationID string `json:"correlation_id"`
+		OriginalURL   string `json:"original_url"`
 	}
 	JSONBatchRespond struct {
-		CorrelationId string `json:"correlation_id"`
-		ShortUrl      string `json:"short_url"`
+		CorrelationID string `json:"correlation_id"`
+		ShortURL      string `json:"short_url"`
 	}
 )
 
@@ -296,17 +296,17 @@ func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 
 	if len(*jsonData) > 0 {
 		for _, v := range *jsonData {
-			if !(utils.ValidateURL(v.OriginalUrl)) {
-				URL = "http://" + v.OriginalUrl
+			if !(utils.ValidateURL(v.OriginalURL)) {
+				URL = "http://" + v.OriginalURL
 			} else {
-				URL = v.OriginalUrl
+				URL = v.OriginalURL
 			}
 
 			shortener := makeShortenURL(uh.store.GetShortener(URL), uh.baseURL)
 
 			item := &JSONBatchRespond{
-				CorrelationId: v.CorrelationId,
-				ShortUrl:      shortener,
+				CorrelationID: v.CorrelationID,
+				ShortURL:      shortener,
 			}
 			bacthResp = append(bacthResp, *item)
 		}
