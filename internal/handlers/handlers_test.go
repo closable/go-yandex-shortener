@@ -327,3 +327,71 @@ func TestCompressor(t *testing.T) {
 	}
 
 }
+
+func TestUploadBatch(t *testing.T) {
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
+	logger := NewLogger()
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
+
+	type wants struct {
+		method      string
+		body        string
+		contentType string
+		statusCode  int
+		resultLen   int
+	}
+
+	tests := []struct {
+		name  string
+		wants wants
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Method POST",
+			wants: wants{
+				method: "POST",
+				body: `[
+					{
+						"correlation_id": "cudLI",
+						"original_url": "http://wSKr/yandex.ru/uuVGbXV"
+					},
+					{
+						"correlation_id": "mUOvN",
+						"original_url": "http://Rktt/yandex.ru/xxLOsfQ"
+					},
+					{
+						"correlation_id": "SriwT",
+						"original_url": "http://XVap/yandex.ru/QWdMOMm"
+					}]`,
+				contentType: "application/json",
+				statusCode:  http.StatusCreated,
+				resultLen:   3,
+			},
+		},
+	}
+	for _, tt := range tests {
+
+		bodyReader := bytes.NewReader([]byte(tt.wants.body))
+
+		r := httptest.NewRequest(tt.wants.method, "/api/shorten/batch", bodyReader)
+		w := httptest.NewRecorder()
+		// вызовем хендлер как обычную функцию, без запуска самого сервера
+
+		handler.UploadBatch(w, r)
+		assert.Equal(t, tt.wants.resultLen, store.Length(), "The result of the operation is wrong")
+		assert.Equal(t, tt.wants.statusCode, w.Code, "Differents status codes")
+
+		if tt.wants.contentType != "application/json" {
+			assert.NotEqual(t, tt.wants.contentType, w.Header().Get("Content-Type"), "Wrong content-type")
+		} else {
+			assert.Equal(t, tt.wants.contentType, w.Header().Get("Content-Type"), "Wrong content-type")
+		}
+	}
+}

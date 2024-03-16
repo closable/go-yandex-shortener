@@ -17,6 +17,9 @@ func main() {
 }
 
 func run() error {
+	// generate test body
+	// utils.GenerateBatchBody(100000)
+
 	cfg := config.LoadConfig()
 	logger := handlers.NewLogger()
 	sugar := *logger.Sugar()

@@ -161,7 +161,6 @@ func (st *StoregeFile) GetShortener(urlText string) string {
 		fmt.Println(err)
 		return ""
 	}
-	fmt.Print(shorterner)
 	return shorterner
 }
 
@@ -171,5 +170,4 @@ func (st *StoregeFile) Ping() bool {
 }
 
 func (st *StoregeFile) PrepareStore() {
-
 }

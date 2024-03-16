@@ -32,6 +32,14 @@ type (
 	JSONRespond struct {
 		Result string `json:"result"`
 	}
+	JSONBatch struct {
+		CorrelationId string `json:"correlation_id"`
+		OriginalUrl   string `json:"original_url"`
+	}
+	JSONBatchRespond struct {
+		CorrelationId string `json:"correlation_id"`
+		ShortUrl      string `json:"short_url"`
+	}
 )
 
 var (
@@ -165,7 +173,7 @@ func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Requ
 	}
 	shortener = path[1:]
 	url, ok := uh.store.FindExistingKey(shortener)
-	fmt.Println(shortener, url, ok)
+
 	if !ok || len(shortener) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(notFoundID))
@@ -249,6 +257,86 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(resp))
 
+}
+
+func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
+	sugar := *uh.logger.Sugar()
+	var jsonData = &[]JSONBatch{}
+	w.Header().Set("Content-Type", "application/json")
+
+	info, err := io.ReadAll(r.Body)
+	// check body
+	if err != nil || len(info) == 0 {
+		resp, _ := json.Marshal(createRespondBody(errBody))
+
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(resp)
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", errBody,
+		)
+		return
+	}
+	// try unmarshal
+	if err = json.Unmarshal(info, jsonData); err != nil {
+		resp, _ := json.Marshal(createRespondBody(errBody))
+
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(resp))
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", err,
+		)
+		return
+	}
+	var bacthResp = []JSONBatchRespond{}
+	var URL string
+
+	if len(*jsonData) > 0 {
+		for _, v := range *jsonData {
+			if !(utils.ValidateURL(v.OriginalUrl)) {
+				URL = "http://" + v.OriginalUrl
+			} else {
+				URL = v.OriginalUrl
+			}
+
+			shortener := makeShortenURL(uh.store.GetShortener(URL), uh.baseURL)
+
+			item := &JSONBatchRespond{
+				CorrelationId: v.CorrelationId,
+				ShortUrl:      shortener,
+			}
+			bacthResp = append(bacthResp, *item)
+		}
+	}
+
+	resp, err := json.Marshal(bacthResp)
+	if err != nil {
+		resp, _ := json.Marshal(createRespondBody(errURL))
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(resp))
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", errURL,
+		)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(resp))
+
+}
+
+func makeShortenURL(URL string, baseURL string) string {
+	adr, _ := url.Parse(baseURL)
+	if len(adr.Host) == 0 {
+		return fmt.Sprintf("http://%s/%s", baseURL, URL)
+	} else {
+		return fmt.Sprintf("%s/%s", baseURL, URL)
+	}
 }
 
 func createRespondBody(result string) JSONRespond {

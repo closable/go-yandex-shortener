@@ -16,6 +16,7 @@ func (uh *URLHandler) InitRouter() chi.Router {
 	router.Get("/{id}", uh.GetEndpointByShortener)
 	router.Get("/ping", uh.CheckBaseActivity)
 	router.Post("/api/shorten", uh.GenerateJSONShortener)
+	router.Post("/api/shorten/batch", uh.UploadBatch)
 
 	return router
 }

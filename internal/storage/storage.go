@@ -69,4 +69,5 @@ func (s *Store) Ping() bool {
 	return s.Urls["ping"] == "ping"
 }
 
-func (s *Store) PrepareStore() {}
+func (s *Store) PrepareStore() {
+}

@@ -43,19 +43,31 @@ func (dbms *StoreDBMS) CreateTable(name string) error {
 
 // add new shortener and return key
 func (dbms *StoreDBMS) GetShortener(url string) string {
-	sql := "MERGE INTO ya.shortener ys using (SELECT $1 url) res ON (ys.url = res.url) WHEN NOT MATCHED THEN INSERT (key, url) VALUES (substr(md5(random()::text), 1, 10), res.url)"
+	sql := `MERGE INTO ya.shortener ys using 
+				(SELECT $1 url) res ON (ys.url = res.url) 
+				WHEN NOT MATCHED 
+				THEN INSERT (key, url) VALUES (substr(md5(random()::text), 1, 10), res.url)`
 
-	_, err := dbms.DB.ExecContext(dbms.CTX, sql, url)
+	tx, err := dbms.DB.BeginTx(dbms.CTX, nil)
 	if err != nil {
+		return ""
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(dbms.CTX, sql, url)
+	if err != nil {
+		return ""
+	}
+
+	if err = tx.Commit(); err != nil {
 		return ""
 	}
 
 	shortener, find := dbms.FindKeyByValue(url)
 	if !find {
-		//err := errors.New("key by url not fount")
+		//err := errors.New("key by url not foundß")
 		return ""
 	}
-
 	return shortener
 }
 
@@ -73,7 +85,7 @@ func (dbms *StoreDBMS) FindExistingKey(key string) (string, bool) {
 }
 
 func (dbms *StoreDBMS) FindKeyByValue(url string) (string, bool) {
-	sql := "SELECT key FROM ya.shortener WHERE url = $1"
+	sql := "SELECT key FROM ya.shortener WHERE url is not null and url = $1"
 	var key string
 
 	err := dbms.DB.QueryRowContext(dbms.CTX, sql, url).Scan(&key)
@@ -112,16 +124,12 @@ func (dbms *StoreDBMS) PrepareStore() {
 
 	err := dbms.CreateSchema("ya")
 	if err != nil {
-		fmt.Println("!!! ошибка создания схемы", err)
+		fmt.Println("error creating schema", err)
 	}
 
 	err = dbms.CreateTable("ya.shortener")
 	if err != nil {
-		fmt.Println("!!! ошибка создания таблицы", err)
+		fmt.Println("error creating table", err)
 	}
 
-	// key, err := dbms.AddItem("", "www.yandex.ru/124")
-	// if err != nil {
-	// 	fmt.Println("!!! ошибка при добавлении", err)
-	// }
 }
