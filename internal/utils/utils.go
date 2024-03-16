@@ -9,8 +9,8 @@ import (
 )
 
 type BatchBody struct {
-	CorrelationId string `json:"correlation_id"`
-	OriginalUrl   string `json:"original_url"`
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
 }
 
 // check url
@@ -36,8 +36,8 @@ func GenerateBatchBody(itemsCnt int) {
 	for i := 0; i <= itemsCnt; i++ {
 
 		arr = append(arr, BatchBody{
-			CorrelationId: GetRandomKey(5),
-			OriginalUrl:   fmt.Sprintf("http://%s/yandex.ru/%s", GetRandomKey(4), GetRandomKey(7)),
+			CorrelationID: GetRandomKey(5),
+			OriginalURL:   fmt.Sprintf("http://%s/yandex.ru/%s", GetRandomKey(4), GetRandomKey(7)),
 		})
 	}
 
