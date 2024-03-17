@@ -7,7 +7,7 @@ import (
 )
 
 func TestFindKeyByValue(t *testing.T) {
-	store := New()
+	store, _ := NewMemory()
 	store.Urls["abcde"] = "http://mail.ru"
 	tests := []struct {
 		name   string
