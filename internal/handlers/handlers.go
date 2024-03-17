@@ -105,6 +105,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	shortener := ""
+	statusSet := false
 	var reader io.Reader
 
 	if r.Header.Get(`Content-Encoding`) == `gzip` {
@@ -137,22 +138,28 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 		info = []byte(fmt.Sprintf("http://%s", info))
 	}
 
-	//shortener = uh.store.GetShortener(string(info))
-
 	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
 
-	shortener, _ = uh.store.GetShortener(string(info))
+	shortener, err = uh.store.GetShortener(string(info))
+	if err != nil {
+		if err.Error() != "409" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(errBody))
+			sugar.Infoln(
+				"uri", r.RequestURI,
+				"method", r.Method,
+				"description", errBody,
+			)
+			return
+		}
+
+		statusSet = true
+		w.WriteHeader(http.StatusConflict)
+	}
 	body := makeShortenURL(shortener, uh.baseURL)
-
-	// adr, _ := url.Parse(uh.baseURL)
-
-	// body := ""
-	// if len(adr.Host) == 0 {
-	// 	body = fmt.Sprintf("http://%s/%s", uh.baseURL, shortener)
-	// } else {
-	// 	body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
-	// }
+	if !statusSet {
+		w.WriteHeader(http.StatusCreated)
+	}
 
 	w.Write([]byte(body))
 

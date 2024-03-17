@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"errors"
+	"strings"
 	"sync"
 
 	"github.com/closable/go-yandex-shortener/internal/utils"
@@ -28,6 +30,7 @@ func (s *Store) GetShortener(txtURL string) (string, error) {
 	shortener := ""
 	// it needs for exclude existing urls
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	key := s.FindKeyByValue(string(txtURL))
 
 	if len(key) == 0 {
@@ -41,16 +44,15 @@ func (s *Store) GetShortener(txtURL string) (string, error) {
 		}
 		s.Urls[shortener] = txtURL
 	} else {
-		shortener = key
+		return key, errors.New("409")
 	}
 
-	s.mu.Unlock()
 	return shortener, nil
 }
 
 func (s *Store) FindKeyByValue(urlText string) string {
 	for key, value := range s.Urls {
-		if value == urlText {
+		if strings.Contains(value, urlText) {
 			return key
 		}
 	}
