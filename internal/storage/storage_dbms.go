@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -20,8 +21,8 @@ func (dbms *StoreDBMS) GetConn() (*sql.Conn, error) {
 }
 
 // create schena if schema doesn't exists
-func (dbms *StoreDBMS) CreateSchema(name string) error {
-	sql := fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s AUTHORIZATION postgres", name)
+func (dbms *StoreDBMS) CreateSchema() error {
+	sql := "CREATE SCHEMA IF NOT EXISTS ya AUTHORIZATION postgres"
 	_, err := dbms.DB.ExecContext(dbms.CTX, sql)
 	if err != nil {
 		return err
@@ -31,44 +32,80 @@ func (dbms *StoreDBMS) CreateSchema(name string) error {
 }
 
 // create table if table doesn't exists
-func (dbms *StoreDBMS) CreateTable(name string) error {
-	sql := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (key varchar(10) not null, url text)", name)
+func (dbms *StoreDBMS) CreateTable() error {
+	// sql := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (key varchar(10) not null, url text)", name)
+
+	sql := `
+	CREATE TABLE IF NOT EXISTS ya.shortener (
+		key varchar(10) not null, 
+		url text)
+	`
 	_, err := dbms.DB.ExecContext(dbms.CTX, sql)
 	if err != nil {
-		return err
+		return fmt.Errorf("error during creating schema - %w", err)
 	}
 
 	return nil
 }
 
+func (dbms *StoreDBMS) CreateIndex() error {
+	var cnt int
+	sql := `select count(*) from pg_indexes where tablename = 'shortener' and indexname = 'url'`
+	// check index
+	err := dbms.DB.QueryRowContext(dbms.CTX, sql).Scan(&cnt)
+	if err != nil {
+		return fmt.Errorf("error during check index - %w", err)
+	}
+
+	create := `CREATE UNIQUE INDEX url ON ya.shortener USING btree (url ASC NULLS LAST) TABLESPACE pg_default`
+	// create index if not exists
+	if cnt == 0 {
+		_, err = dbms.DB.ExecContext(dbms.CTX, create)
+		if err != nil {
+			return fmt.Errorf("error during creating index %w", err)
+		}
+	}
+	return nil
+}
+
 // add new shortener and return key
-func (dbms *StoreDBMS) GetShortener(url string) string {
-	sql := `MERGE INTO ya.shortener ys using 
+func (dbms *StoreDBMS) GetShortener(url string) (string, error) {
+	sqlBefore := "SELECT key, url FROM ya.shortener WHERE url like '" + url + "%' order by length(url) asc limit 1"
+
+	sql := `MERGE INTO ya.shortener ys using
 				(SELECT $1 url) res ON (ys.url = res.url) 
 				WHEN NOT MATCHED 
 				THEN INSERT (key, url) VALUES (substr(md5(random()::text), 1, 10), res.url)`
 
 	tx, err := dbms.DB.BeginTx(dbms.CTX, nil)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	defer tx.Rollback()
 
+	var short, existingURL string
+	_ = tx.QueryRowContext(dbms.CTX, sqlBefore).Scan(&short, &existingURL)
+
+	// if URL exists then return key and mark error 409
+	if len(existingURL) > 0 {
+		return short, errors.New("409")
+	}
+
 	_, err = tx.ExecContext(dbms.CTX, sql, url)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	if err = tx.Commit(); err != nil {
-		return ""
+		return "", err
 	}
 
 	shortener, find := dbms.FindKeyByValue(url)
 	if !find {
 		//err := errors.New("key by url not foundß")
-		return ""
+		return "", err
 	}
-	return shortener
+	return shortener, nil
 }
 
 // get shortener by url
@@ -122,14 +159,19 @@ func (dbms *StoreDBMS) Ping() bool {
 
 func (dbms *StoreDBMS) PrepareStore() {
 
-	err := dbms.CreateSchema("ya")
+	err := dbms.CreateSchema()
 	if err != nil {
-		fmt.Println("error creating schema", err)
+		fmt.Println(err)
 	}
 
-	err = dbms.CreateTable("ya.shortener")
+	err = dbms.CreateTable()
 	if err != nil {
-		fmt.Println("error creating table", err)
+		fmt.Println(err)
+	}
+
+	err = dbms.CreateIndex()
+	if err != nil {
+		fmt.Println(err)
 	}
 
 }

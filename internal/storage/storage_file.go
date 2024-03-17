@@ -2,7 +2,6 @@ package storage
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -142,12 +141,12 @@ func (st *StoregeFile) FindExistingKey(keyText string) (string, bool) {
 	return "", false
 }
 
-func (st *StoregeFile) GetShortener(urlText string) string {
+func (st *StoregeFile) GetShortener(urlText string) (string, error) {
 	var shorterner string
 
 	shorterner = st.FindKeyByValue(urlText)
 	if len(shorterner) > 0 {
-		return shorterner
+		return shorterner, nil
 	}
 
 	shorterner = utils.GetRandomKey(6)
@@ -158,14 +157,13 @@ func (st *StoregeFile) GetShortener(urlText string) string {
 	})
 
 	if err != nil {
-		fmt.Println(err)
-		return ""
+		return "", err
 	}
-	return shorterner
+	return shorterner, nil
 }
 
 func (st *StoregeFile) Ping() bool {
-	shortener := st.GetShortener("ping")
+	shortener, _ := st.GetShortener("ping")
 	return len(shortener) != 0
 }
 

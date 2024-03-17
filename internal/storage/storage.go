@@ -24,7 +24,7 @@ func (s *Store) AddItem(key string, url string) (string, error) {
 	return key, nil
 }
 
-func (s *Store) GetShortener(txtURL string) string {
+func (s *Store) GetShortener(txtURL string) (string, error) {
 	shortener := ""
 	// it needs for exclude existing urls
 	s.mu.Lock()
@@ -45,7 +45,7 @@ func (s *Store) GetShortener(txtURL string) string {
 	}
 
 	s.mu.Unlock()
-	return shortener
+	return shortener, nil
 }
 
 func (s *Store) FindKeyByValue(urlText string) string {

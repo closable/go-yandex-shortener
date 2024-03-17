@@ -13,7 +13,7 @@ import (
 )
 
 type Storager interface {
-	GetShortener(txtURL string) string
+	GetShortener(txtURL string) (string, error)
 	FindExistingKey(keyText string) (string, bool)
 	Ping() bool
 	PrepareStore()
@@ -137,19 +137,22 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 		info = []byte(fmt.Sprintf("http://%s", info))
 	}
 
-	shortener = uh.store.GetShortener(string(info))
+	//shortener = uh.store.GetShortener(string(info))
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 
-	adr, _ := url.Parse(uh.baseURL)
+	shortener, _ = uh.store.GetShortener(string(info))
+	body := makeShortenURL(shortener, uh.baseURL)
 
-	body := ""
-	if len(adr.Host) == 0 {
-		body = fmt.Sprintf("http://%s/%s", uh.baseURL, shortener)
-	} else {
-		body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
-	}
+	// adr, _ := url.Parse(uh.baseURL)
+
+	// body := ""
+	// if len(adr.Host) == 0 {
+	// 	body = fmt.Sprintf("http://%s/%s", uh.baseURL, shortener)
+	// } else {
+	// 	body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
+	// }
 
 	w.Write([]byte(body))
 
@@ -193,6 +196,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 	sugar := *uh.logger.Sugar()
 	shortener := ""
 	body := ""
+	statusSet := false
 	var jsonURL = &JSONRequest{}
 	w.Header().Set("Content-Type", "application/json")
 
@@ -231,15 +235,24 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 		jsonURL.URL = "http://" + jsonURL.URL
 	}
 
-	shortener = uh.store.GetShortener(jsonURL.URL)
-	adr, _ := url.Parse(uh.baseURL)
-
-	body = ""
-	if len(adr.Host) == 0 {
-		body = fmt.Sprintf("http://%s/%s", uh.baseURL, shortener)
-	} else {
-		body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
+	shortener, err = uh.store.GetShortener(jsonURL.URL)
+	if err != nil {
+		if err.Error() != "409" {
+			resp, _ := json.Marshal(createRespondBody(errURL))
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(resp))
+			sugar.Infoln(
+				"uri", r.RequestURI,
+				"method", r.Method,
+				"description", errURL,
+			)
+			return
+		}
+		statusSet = true
+		w.WriteHeader(http.StatusConflict)
 	}
+
+	body = makeShortenURL(shortener, uh.baseURL)
 
 	resp, err := json.Marshal(createRespondBody(body))
 	if err != nil {
@@ -253,8 +266,9 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 		)
 		return
 	}
-
-	w.WriteHeader(http.StatusCreated)
+	if !statusSet {
+		w.WriteHeader(http.StatusCreated)
+	}
 	w.Write([]byte(resp))
 
 }
@@ -302,11 +316,12 @@ func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 				URL = v.OriginalURL
 			}
 
-			shortener := makeShortenURL(uh.store.GetShortener(URL), uh.baseURL)
+			shortener, _ := uh.store.GetShortener(URL)
+			body := makeShortenURL(shortener, uh.baseURL)
 
 			item := &JSONBatchRespond{
 				CorrelationID: v.CorrelationID,
-				ShortURL:      shortener,
+				ShortURL:      body,
 			}
 			bacthResp = append(bacthResp, *item)
 		}
