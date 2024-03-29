@@ -7,18 +7,16 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"strings"
 
 	"github.com/closable/go-yandex-shortener/internal/utils"
 	"go.uber.org/zap"
 )
 
 type Storager interface {
-	GetShortener(txtURL string) string
+	GetShortener(txtURL string) (string, error)
 	FindExistingKey(keyText string) (string, bool)
-	Length() int
-	AddItem(key string, url string)
+	Ping() bool
+	PrepareStore()
 }
 
 type (
@@ -26,7 +24,6 @@ type (
 		store     Storager
 		baseURL   string
 		logger    zap.Logger
-		fileStore string
 		maxLength int64
 	}
 	JSONRequest struct {
@@ -34,6 +31,14 @@ type (
 	}
 	JSONRespond struct {
 		Result string `json:"result"`
+	}
+	JSONBatch struct {
+		CorrelationID string `json:"correlation_id"`
+		OriginalURL   string `json:"original_url"`
+	}
+	JSONBatchRespond struct {
+		CorrelationID string `json:"correlation_id"`
+		ShortURL      string `json:"short_url"`
 	}
 )
 
@@ -44,22 +49,22 @@ var (
 	notFoundID = "Error! id is not found or empty"
 )
 
-func New(st Storager, baseURL string, logger zap.Logger, fileStore string, maxLength int64) *URLHandler {
+func New(st Storager, baseURL string, logger zap.Logger, maxLength int64) *URLHandler {
+	st.PrepareStore()
 	// load stored data
-	if len(fileStore) > 0 {
-		consumer, err := NewConsumer(fileStore)
-		if err != nil {
-			logger.Fatal("File not found")
-		}
-		defer consumer.file.Close()
-		loadDataFromFile(st, consumer.file)
-	}
+	// if len(fileStore) > 0 {
+	// 	consumer, err := NewConsumer(fileStore)
+	// 	if err != nil {
+	// 		logger.Fatal("File not found")
+	// 	}
+	// 	defer consumer.file.Close()
+	// 	loadDataFromFile(st, consumer.file)
+	// }
 
 	return &URLHandler{
 		store:     st,
 		baseURL:   baseURL,
 		logger:    logger,
-		fileStore: fileStore,
 		maxLength: maxLength, // will compress if content-length > maxLength
 	}
 }
@@ -84,26 +89,6 @@ type (
 	}
 )
 
-func loadDataFromFile(st Storager, file *os.File) error {
-	body, err := io.ReadAll(file)
-	if err != nil {
-		return err
-	}
-
-	rows := strings.Split(string(body), "\n")
-
-	for _, v := range rows {
-		event := &Event{}
-		err := json.Unmarshal([]byte(v), event)
-		if err != nil {
-			file.Close()
-			break
-		}
-		st.AddItem(event.ShortURL, event.OriginlURL)
-	}
-	return nil
-}
-
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter
 	size, err := r.ResponseWriter.Write(b)
@@ -120,6 +105,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	shortener := ""
+	statusSet := false
 	var reader io.Reader
 
 	if r.Header.Get(`Content-Encoding`) == `gzip` {
@@ -148,45 +134,31 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if !(utils.ValidateURL(string(info))) {
-		// w.WriteHeader(http.StatusBadRequest)
-		// w.Write([]byte(errURL))
-		// sugar.Infoln(
-		// 	"uri", r.RequestURI,
-		// 	"method", r.Method,
-		// 	"description", errURL,
-		// )
-		// return
 		// change behaviour when requeust doesn't have the protocol 26-02-24
 		info = []byte(fmt.Sprintf("http://%s", info))
 	}
-	shortener = uh.store.GetShortener(string(info))
 
 	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
 
-	adr, _ := url.Parse(uh.baseURL)
+	shortener, err = uh.store.GetShortener(string(info))
+	if err != nil {
+		if err.Error() != "409" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(errBody))
+			sugar.Infoln(
+				"uri", r.RequestURI,
+				"method", r.Method,
+				"description", errBody,
+			)
+			return
+		}
 
-	body := ""
-	if len(adr.Host) == 0 {
-		body = fmt.Sprintf("http://%s/%s", uh.baseURL, shortener)
-	} else {
-		body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
+		statusSet = true
+		w.WriteHeader(http.StatusConflict)
 	}
-
-	if len(uh.fileStore) > 0 {
-		producer, err := NewProducer(uh.fileStore)
-		if err != nil {
-			sugar.Fatal(err)
-		}
-
-		defer producer.Close()
-		if err := producer.WriteEvent(&Event{
-			UUID:       uint(uh.store.Length()),
-			ShortURL:   shortener,
-			OriginlURL: string(info),
-		}); err != nil {
-			sugar.Fatal(err)
-		}
+	body := makeShortenURL(shortener, uh.baseURL)
+	if !statusSet {
+		w.WriteHeader(http.StatusCreated)
 	}
 
 	w.Write([]byte(body))
@@ -231,6 +203,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 	sugar := *uh.logger.Sugar()
 	shortener := ""
 	body := ""
+	statusSet := false
 	var jsonURL = &JSONRequest{}
 	w.Header().Set("Content-Type", "application/json")
 
@@ -265,29 +238,28 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 	}
 	// check valid url
 	if !(utils.ValidateURL(jsonURL.URL)) {
-		// resp, _ := json.Marshal(createRespondBody(errURL))
-		// w.WriteHeader(http.StatusBadRequest)
-		// w.Write([]byte(resp))
-		// sugar.Infoln(
-		// 	"uri", r.RequestURI,
-		// 	"method", r.Method,
-		// 	"description", errURL,
-		// )
-		// return
-
 		// change behaviour when requeust doesn't have the protocol 26-02-24
 		jsonURL.URL = "http://" + jsonURL.URL
 	}
 
-	shortener = uh.store.GetShortener(jsonURL.URL)
-	adr, _ := url.Parse(uh.baseURL)
-
-	body = ""
-	if len(adr.Host) == 0 {
-		body = fmt.Sprintf("http://%s/%s", uh.baseURL, shortener)
-	} else {
-		body = fmt.Sprintf("%s/%s", uh.baseURL, shortener)
+	shortener, err = uh.store.GetShortener(jsonURL.URL)
+	if err != nil {
+		if err.Error() != "409" {
+			resp, _ := json.Marshal(createRespondBody(errURL))
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(resp))
+			sugar.Infoln(
+				"uri", r.RequestURI,
+				"method", r.Method,
+				"description", errURL,
+			)
+			return
+		}
+		statusSet = true
+		w.WriteHeader(http.StatusConflict)
 	}
+
+	body = makeShortenURL(shortener, uh.baseURL)
 
 	resp, err := json.Marshal(createRespondBody(body))
 	if err != nil {
@@ -301,25 +273,92 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 		)
 		return
 	}
+	if !statusSet {
+		w.WriteHeader(http.StatusCreated)
+	}
+	w.Write([]byte(resp))
 
-	if len(uh.fileStore) > 0 {
-		producer, err := NewProducer(uh.fileStore)
-		if err != nil {
-			sugar.Fatal(err)
+}
+
+func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
+	sugar := *uh.logger.Sugar()
+	var jsonData = &[]JSONBatch{}
+	w.Header().Set("Content-Type", "application/json")
+
+	info, err := io.ReadAll(r.Body)
+	// check body
+	if err != nil || len(info) == 0 {
+		resp, _ := json.Marshal(createRespondBody(errBody))
+
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(resp)
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", errBody,
+		)
+		return
+	}
+	// try unmarshal
+	if err = json.Unmarshal(info, jsonData); err != nil {
+		resp, _ := json.Marshal(createRespondBody(errBody))
+
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(resp))
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", err,
+		)
+		return
+	}
+	var bacthResp = []JSONBatchRespond{}
+	var URL string
+
+	if len(*jsonData) > 0 {
+		for _, v := range *jsonData {
+			if !(utils.ValidateURL(v.OriginalURL)) {
+				URL = "http://" + v.OriginalURL
+			} else {
+				URL = v.OriginalURL
+			}
+
+			shortener, _ := uh.store.GetShortener(URL)
+			body := makeShortenURL(shortener, uh.baseURL)
+
+			item := &JSONBatchRespond{
+				CorrelationID: v.CorrelationID,
+				ShortURL:      body,
+			}
+			bacthResp = append(bacthResp, *item)
 		}
-		defer producer.Close()
-		if err := producer.WriteEvent(&Event{
-			UUID:       uint(uh.store.Length()),
-			ShortURL:   shortener,
-			OriginlURL: jsonURL.URL,
-		}); err != nil {
-			sugar.Fatal(err)
-		}
+	}
+
+	resp, err := json.Marshal(bacthResp)
+	if err != nil {
+		resp, _ := json.Marshal(createRespondBody(errURL))
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(resp))
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", errURL,
+		)
+		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(resp))
 
+}
+
+func makeShortenURL(URL string, baseURL string) string {
+	adr, _ := url.Parse(baseURL)
+	if len(adr.Host) == 0 {
+		return fmt.Sprintf("http://%s/%s", baseURL, URL)
+	} else {
+		return fmt.Sprintf("%s/%s", baseURL, URL)
+	}
 }
 
 func createRespondBody(result string) JSONRespond {

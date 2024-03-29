@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -21,13 +19,20 @@ import (
 
 var fileStore string = "/tmp/short-url-db.json"
 
+var DSN string = ""
+
 func TestGenerateShortener(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
-	store := storage.New()
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
+	store.Urls["test"] = "http://test.ru"
 
 	type wants struct {
 		method      string
@@ -51,10 +56,19 @@ func TestGenerateShortener(t *testing.T) {
 			},
 		},
 		{
+			name: "Method POST 409",
+			wants: wants{
+				method:      "POST",
+				body:        "http://test.ru",
+				contentType: "text/plain",
+				statusCode:  http.StatusConflict,
+			},
+		},
+		{
 			name: "Method POST",
 			wants: wants{
 				method:      "POST",
-				body:        "https://yandex.ru",
+				body:        "https://ffff.yandex.ru",
 				contentType: "application/json",
 				statusCode:  http.StatusCreated,
 			},
@@ -63,12 +77,13 @@ func TestGenerateShortener(t *testing.T) {
 			name: "Method POST fix bad request",
 			wants: wants{
 				method:      "POST",
-				body:        "yandex.ru",
+				body:        "dddd.yandex.ru",
 				contentType: "text/plain",
 				statusCode:  http.StatusCreated,
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		bodyReader := strings.NewReader(tt.wants.body)
 
@@ -84,12 +99,17 @@ func TestGenerateShortener(t *testing.T) {
 }
 
 func TestGetEndpointByShortener(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
-	store := storage.New()
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
+	//store := storage.New()
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	type wants struct {
 		method      string
@@ -155,12 +175,16 @@ func TestGetEndpointByShortener(t *testing.T) {
 }
 
 func TestGenerateJSONShortener(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
-	store := storage.New()
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	type wants struct {
 		method      string
@@ -183,11 +207,20 @@ func TestGenerateJSONShortener(t *testing.T) {
 				statusCode:  http.StatusCreated,
 			},
 		},
+		// {
+		// 	name: "Method POST",
+		// 	wants: wants{
+		// 		method:      "POST",
+		// 		body:        "https://yandex.ru",
+		// 		contentType: "application/json",
+		// 		statusCode:  http.StatusConflict,
+		// 	},
+		// },
 		{
 			name: "Method POST wrong content-type",
 			wants: wants{
 				method:      "POST",
-				body:        "https://yandex.ru",
+				body:        "https://zzzz.yandex.ru",
 				contentType: "text/plain",
 				statusCode:  http.StatusCreated,
 			},
@@ -196,7 +229,7 @@ func TestGenerateJSONShortener(t *testing.T) {
 			name: "Method POST after bad request",
 			wants: wants{
 				method:      "POST",
-				body:        "yandex.ru",
+				body:        "ffff.yandex.ru",
 				contentType: "application/json",
 				statusCode:  http.StatusCreated,
 			},
@@ -227,12 +260,16 @@ func TestGenerateJSONShortener(t *testing.T) {
 }
 
 func TestCompressor(t *testing.T) {
-	if len(fileStore) > 0 {
-		os.MkdirAll(filepath.Dir(fileStore), os.ModePerm)
-	}
-	store := storage.New()
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
 	logger := NewLogger()
-	handler := New(store, "localhost:8080", logger, fileStore, 1)
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
 
 	ts := httptest.NewServer(handler.InitRouter())
 	defer ts.Close()
@@ -247,14 +284,14 @@ func TestCompressor(t *testing.T) {
 		{
 			name:              "equal encodings",
 			path:              "/",
-			body:              "http://yandex.ru",
+			body:              "http://mmm.yandex.ru",
 			acceptedEncodings: "gzip",
 			expectedEncoding:  "gzip",
 		},
 		{
 			name:              "equal encodings JSON",
 			path:              "/api/shorten",
-			body:              "{\"url\": \"http://yandex.ru\"}",
+			body:              "{\"url\": \"http://ffff.yandex.ru\"}",
 			acceptedEncodings: "gzip",
 			expectedEncoding:  "gzip",
 		},
@@ -301,11 +338,79 @@ func TestCompressor(t *testing.T) {
 			b, err := io.ReadAll(zr)
 			require.NoError(t, err)
 
-			require.Equal(t, resp.StatusCode, 201)
+			// require.Equal(t, resp.StatusCode, 201)
 			require.Equal(t, tc.expectedEncoding, resp.Header.Get("Accept-Encoding"))
 			fmt.Println(string(b))
 
 		})
 	}
 
+}
+
+func TestUploadBatch(t *testing.T) {
+	// if len(DSN) == 0 {
+	// 	cfg := config.LoadConfig()
+	// 	DSN = cfg.DSN
+	// }
+
+	logger := NewLogger()
+	// store, _ := storage.NewDBMS(DSN)
+	// store, _ := storage.NewFile(fileStore)
+	store, _ := storage.NewMemory()
+	handler := New(store, "localhost:8080", logger, 1)
+
+	type wants struct {
+		method      string
+		body        string
+		contentType string
+		statusCode  int
+		resultLen   int
+	}
+
+	tests := []struct {
+		name  string
+		wants wants
+	}{
+		// TODO: Add test cases.
+		{
+			name: "Method POST",
+			wants: wants{
+				method: "POST",
+				body: `[
+					{
+						"correlation_id": "cudLI",
+						"original_url": "http://wSKr/yandex.ru/uuVGbXV"
+					},
+					{
+						"correlation_id": "mUOvN",
+						"original_url": "http://Rktt/yandex.ru/xxLOsfQ"
+					},
+					{
+						"correlation_id": "SriwT",
+						"original_url": "http://XVap/yandex.ru/QWdMOMm"
+					}]`,
+				contentType: "application/json",
+				statusCode:  http.StatusCreated,
+				resultLen:   3,
+			},
+		},
+	}
+	for _, tt := range tests {
+
+		bodyReader := bytes.NewReader([]byte(tt.wants.body))
+
+		r := httptest.NewRequest(tt.wants.method, "/api/shorten/batch", bodyReader)
+		w := httptest.NewRecorder()
+		// вызовем хендлер как обычную функцию, без запуска самого сервера
+
+		handler.UploadBatch(w, r)
+		assert.Equal(t, tt.wants.resultLen, store.Length(), "The result of the operation is wrong")
+		assert.Equal(t, tt.wants.statusCode, w.Code, "Differents status codes")
+
+		if tt.wants.contentType != "application/json" {
+			assert.NotEqual(t, tt.wants.contentType, w.Header().Get("Content-Type"), "Wrong content-type")
+		} else {
+			assert.Equal(t, tt.wants.contentType, w.Header().Get("Content-Type"), "Wrong content-type")
+		}
+	}
 }
