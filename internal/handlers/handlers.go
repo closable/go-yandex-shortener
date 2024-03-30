@@ -17,6 +17,7 @@ type Storager interface {
 	FindExistingKey(keyText string) (string, bool)
 	Ping() bool
 	PrepareStore()
+	GetURLs(userID int) (map[string]string, error)
 }
 
 type (

@@ -6,12 +6,23 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
-type gzipWriter struct {
-	http.ResponseWriter
-	Writer io.Writer
-}
+const TOKEN_EXP = time.Hour * 3
+const SECRET_KEY = "*HelloWorld*"
+
+type (
+	gzipWriter struct {
+		http.ResponseWriter
+		Writer io.Writer
+	}
+	Claims struct {
+		jwt.RegisteredClaims
+		UserID int
+	}
+)
 
 func (w gzipWriter) Write(b []byte) (int, error) {
 	// w.Writer будет отвечать за gzip-сжатие, поэтому пишем в него
@@ -85,4 +96,74 @@ func (uh *URLHandler) Compressor(h http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(zipFn)
+}
+
+// func (uh *URLHandler) Auth(h http.Handler) http.Handler {
+// 	auth := func(w http.ResponseWriter, r *http.Request) {
+// 		// sugar := *uh.logger.Sugar()
+
+// 		if r.URL.Path == "/api/user/urls" {
+
+// 			tokenString, err := BuildJWTString()
+// 			if err != nil {
+// 				log.Fatal(err)
+// 			}
+
+// 			cookie := &http.Cookie{
+// 				Name:    "Token",
+// 				Expires: time.Now().Add(TOKEN_EXP),
+// 			}
+
+// 			cookie.Value = tokenString
+// 			http.SetCookie(w, cookie)
+
+// 			// cookie := &http.Cookie{
+// 			// 	Name:     "Token",
+// 			// 	Value:    "",
+// 			// 	Path:     "/",
+// 			// 	Expires:  time.Unix(0, 0),
+// 			// 	HttpOnly: true,
+// 			// }
+
+// 			// http.SetCookie(w, cookie)
+
+// 		}
+
+// 		h.ServeHTTP(w, r)
+// 	}
+
+// 	return http.HandlerFunc(auth)
+// }
+
+func BuildJWTString() (string, error) {
+	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			// когда создан токен
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TOKEN_EXP)),
+		},
+		// собственное утверждение
+		UserID: 13,
+	})
+
+	// создаём строку токена
+	tokenString, err := token.SignedString([]byte(SECRET_KEY))
+	if err != nil {
+		return "", err
+	}
+
+	// возвращаем строку токена
+	return tokenString, nil
+}
+
+func GetUserID(tokenString string) int {
+	// создаём экземпляр структуры с утверждениями
+	claims := &Claims{}
+	// парсим из строки токена tokenString в структуру claims
+	jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		return []byte(SECRET_KEY), nil
+	})
+
+	// возвращаем ID пользователя в читаемом виде
+	return claims.UserID
 }

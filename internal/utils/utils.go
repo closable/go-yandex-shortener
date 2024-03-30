@@ -8,10 +8,12 @@ import (
 	"os"
 )
 
-type BatchBody struct {
-	CorrelationID string `json:"correlation_id"`
-	OriginalURL   string `json:"original_url"`
-}
+type (
+	BatchBody struct {
+		CorrelationID string `json:"correlation_id"`
+		OriginalURL   string `json:"original_url"`
+	}
+)
 
 // check url
 func ValidateURL(txtURL string) bool {

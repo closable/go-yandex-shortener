@@ -73,3 +73,7 @@ func (s *Store) Ping() bool {
 
 func (s *Store) PrepareStore() {
 }
+
+func (s *Store) GetURLs(userID int) (map[string]string, error) {
+	return s.Urls, nil
+}

@@ -169,3 +169,8 @@ func (st *StoregeFile) Ping() bool {
 
 func (st *StoregeFile) PrepareStore() {
 }
+
+func (st *StoregeFile) GetURLs(userID int) (map[string]string, error) {
+	var result = make(map[string]string)
+	return result, nil
+}
