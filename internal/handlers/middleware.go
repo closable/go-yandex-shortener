@@ -10,8 +10,8 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-const TOKEN_EXP = time.Hour * 3
-const SECRET_KEY = "*HelloWorld*"
+const TokenEXP = time.Hour * 3
+const SecretKEY = "*HelloWorld*"
 
 type (
 	gzipWriter struct {
@@ -140,14 +140,14 @@ func BuildJWTString() (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			// когда создан токен
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TOKEN_EXP)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenEXP)),
 		},
-		// собственное утверждение
+		// собственное утверждениеß
 		UserID: 13,
 	})
 
 	// создаём строку токена
-	tokenString, err := token.SignedString([]byte(SECRET_KEY))
+	tokenString, err := token.SignedString([]byte(SecretKEY))
 	if err != nil {
 		return "", err
 	}
@@ -161,7 +161,7 @@ func GetUserID(tokenString string) int {
 	claims := &Claims{}
 	// парсим из строки токена tokenString в структуру claims
 	jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
-		return []byte(SECRET_KEY), nil
+		return []byte(SecretKEY), nil
 	})
 
 	// возвращаем ID пользователя в читаемом виде

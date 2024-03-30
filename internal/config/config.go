@@ -37,8 +37,8 @@ func ParseFlags() {
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	//flag.StringVar(&FlagFileStore, "f", "/tmp/short-url-db.json", "folder and path where to store data")
 	flag.StringVar(&FlagFileStore, "f", "", "folder and path where to store data")
-	flag.StringVar(&FlagDSN, "d", "postgres://postgres:1303@localhost:5432/postgres", "access to DBMS")
-	//flag.StringVar(&FlagDSN, "d", "", "access to DBMS")
+	// flag.StringVar(&FlagDSN, "d", "postgres://postgres:1303@localhost:5432/postgres", "access to DBMS")
+	flag.StringVar(&FlagDSN, "d", "", "access to DBMS")
 
 	flag.Parse()
 }

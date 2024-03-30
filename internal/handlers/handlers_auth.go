@@ -27,7 +27,7 @@ func (uh *URLHandler) GetUrls(w http.ResponseWriter, r *http.Request) {
 
 		cookie := http.Cookie{
 			Name:    "Authorization",
-			Expires: time.Now().Add(TOKEN_EXP),
+			Expires: time.Now().Add(TokenEXP),
 			Value:   tokenString,
 		}
 		http.SetCookie(w, &cookie)
