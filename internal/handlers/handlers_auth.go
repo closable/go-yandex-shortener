@@ -16,7 +16,7 @@ type AuthItemURL struct {
 func (uh *URLHandler) GetUrls(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 
-	var userId int
+	var userID int
 	token, err := r.Cookie("Authorization")
 
 	if err != nil {
@@ -31,17 +31,27 @@ func (uh *URLHandler) GetUrls(w http.ResponseWriter, r *http.Request) {
 			Value:   tokenString,
 		}
 		http.SetCookie(w, &cookie)
-		userId = GetUserID(tokenString)
+		userID = GetUserID(tokenString)
 	}
 
 	if len(token.String()) > 0 {
-		userId = GetUserID(token.Value)
+		userID = GetUserID(token.Value)
+	}
+	if userID == 0 {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte(" "))
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", fmt.Sprintf("User %d unauthorized", userID),
+		)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
 	var body []AuthItemURL
-	res, err := uh.store.GetURLs(userId)
+	res, err := uh.store.GetURLs(userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(errBody))
@@ -59,7 +69,7 @@ func (uh *URLHandler) GetUrls(w http.ResponseWriter, r *http.Request) {
 		sugar.Infoln(
 			"uri", r.RequestURI,
 			"method", r.Method,
-			"description", fmt.Sprintf("recs for user %d not found", userId),
+			"description", fmt.Sprintf("recs for user %d not found", userID),
 		)
 		return
 	}
