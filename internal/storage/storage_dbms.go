@@ -103,7 +103,7 @@ func (dbms *StoreDBMS) CreateIndex() error {
 
 // add new shortener and return key
 func (dbms *StoreDBMS) GetShortener(url string) (string, error) {
-	sqlBefore := "SELECT key, ur FROM ya.shortener WHERE url like '" + url + "%' order by length(url) asc limit 1"
+	sqlBefore := "SELECT key, url FROM ya.shortener WHERE url like '" + url + "%' order by length(url) asc limit 1"
 
 	sql := `MERGE INTO ya.shortener ys using
 				(SELECT $1 url) res ON (ys.url = res.url) 
@@ -120,7 +120,6 @@ func (dbms *StoreDBMS) GetShortener(url string) (string, error) {
 
 	var short, existingURL string
 	_ = tx.QueryRowContext(ctx, sqlBefore).Scan(&short, &existingURL)
-
 	// if URL exists then return key and mark error 409
 	if len(existingURL) > 0 {
 		return short, errors.New("409")
@@ -131,12 +130,10 @@ func (dbms *StoreDBMS) GetShortener(url string) (string, error) {
 		// fmt.Println("!!!!", err) TODO !!! ошибка не обработанаы
 		return "", err
 	}
-
 	if err = tx.Commit(); err != nil {
 		fmt.Println("!!!!", err) // TODO !!! ошибка не обработанаы
 		return "", err
 	}
-
 	shortener, find := dbms.FindKeyByValue(url)
 	if !find {
 		//err := errors.New("key by url not found")

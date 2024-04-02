@@ -258,6 +258,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 
 	shortener, err = uh.store.GetShortener(jsonURL.URL)
 	if err != nil {
+
 		if err.Error() != "409" {
 			resp, _ := json.Marshal(createRespondBody(errURL))
 			w.WriteHeader(http.StatusInternalServerError)
@@ -274,7 +275,6 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 	}
 
 	body = makeShortenURL(shortener, uh.baseURL)
-
 	resp, err := json.Marshal(createRespondBody(body))
 	if err != nil {
 		resp, _ := json.Marshal(createRespondBody(errURL))
