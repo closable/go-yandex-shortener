@@ -128,11 +128,14 @@ func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 				}
 				http.SetCookie(w, &cookie)
 				userID = GetUserID(tokenString)
+				fmt.Printf("user get from empty cookies %d", userID)
 			}
 
 			if len(token.String()) > 0 {
 				userID = GetUserID(token.Value)
+				fmt.Printf("user get from existing cookies %d", userID)
 			}
+
 			//userID = 0
 			values := url.Values{}
 			values.Add("userID", fmt.Sprintf("%d", userID))
