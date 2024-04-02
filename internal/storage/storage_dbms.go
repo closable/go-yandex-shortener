@@ -229,7 +229,7 @@ func (dbms *StoreDBMS) GetURLs(userID int) (map[string]string, error) {
 	}
 
 	rows, err := stmt.QueryContext(ctx, userID)
-	if err != nil {
+	if err != nil || rows.Err() != nil {
 		return result.urls, err
 	}
 	var key, url string
