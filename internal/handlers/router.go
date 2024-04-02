@@ -11,7 +11,7 @@ func (uh *URLHandler) InitRouter() chi.Router {
 
 	router.Use(uh.Compressor)
 	router.Use(uh.Logger)
-	router.Use(uh.Auth)
+	// router.Use(uh.Auth)
 
 	router.Post("/", uh.GenerateShortener)
 	router.Get("/{id}", uh.GetEndpointByShortener)
