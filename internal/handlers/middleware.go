@@ -106,8 +106,11 @@ func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 
 		if r.URL.Path == "/api/user/urls" {
 			var userID int
-			token, err := r.Cookie("Authorization")
-			if err != nil {
+			token, errCookie := r.Cookie("Authorization")
+			headerAuth := r.Header.Get("Authorization")
+
+			// if errCookie has err && headerAuth empty
+			if errCookie != nil && len(headerAuth) == 0 {
 				tokenString, err := BuildJWTString()
 				if err != nil {
 					w.WriteHeader(http.StatusInternalServerError)
@@ -127,13 +130,20 @@ func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 					Value:   tokenString,
 				}
 				http.SetCookie(w, &cookie)
+				w.Header().Add("Authorization", tokenString)
 				userID = GetUserID(tokenString)
-				fmt.Printf("user get from empty cookies %d", userID)
+				fmt.Printf("user get from empty cookies %d\n", userID)
 			}
 
 			if len(token.String()) > 0 {
 				userID = GetUserID(token.Value)
-				fmt.Printf("user get from existing cookies %d", userID)
+				w.Header().Add("Authorization", token.Value)
+				fmt.Printf("user get from existing cookies %d\n", userID)
+			}
+
+			if len(headerAuth) > 0 {
+				userID = GetUserID(headerAuth)
+				fmt.Printf("user get from existing header %d\n", userID)
 			}
 
 			//userID = 0
