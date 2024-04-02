@@ -177,7 +177,7 @@ func BuildJWTString() (string, error) {
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenEXP)),
 		},
 		// собственное утверждение
-		UserID: 13,
+		UserID: 0,
 	})
 
 	// создаём строку токена
