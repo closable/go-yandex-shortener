@@ -218,14 +218,14 @@ func (dbms *StoreDBMS) PrepareStore() {
 func (dbms *StoreDBMS) GetURLs(userID int) (map[string]string, error) {
 	var result = &authURLs{urls: make(map[string]string)} // make(map[string]string)
 	ctx := context.Background()
-	sql := "SELECT key, url FROM ya.shortener where user_id > $1"
+	sql := "SELECT key, url FROM ya.shortener where user_id = $1"
 
 	stmt, err := dbms.DB.PrepareContext(ctx, sql)
 	if err != nil {
 		return result.urls, err
 	}
 
-	rows, err := stmt.QueryContext(ctx, 0) //userID)
+	rows, err := stmt.QueryContext(ctx, userID)
 	if err != nil || rows.Err() != nil {
 		return result.urls, err
 	}
