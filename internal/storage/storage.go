@@ -78,6 +78,6 @@ func (s *Store) GetURLs(userID int) (map[string]string, error) {
 	return s.Urls, nil
 }
 
-func (st *Store) SoftDeleteURLs(userID int, key ...string) error {
+func (s *Store) SoftDeleteURLs(userID int, key ...string) error {
 	return nil
 }

@@ -104,52 +104,52 @@ func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 	auth := func(w http.ResponseWriter, r *http.Request) {
 		sugar := *uh.logger.Sugar()
 
-		//if r.URL.Path == "/api/user/urls" {
-		var userID int
-		token, err := r.Cookie("Authorization")
-		if err != nil {
-			tokenString, err := BuildJWTString()
+		if r.URL.Path == "/api/user/urls" {
+			var userID int
+			token, err := r.Cookie("Authorization")
 			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				tokenString, err := BuildJWTString()
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte(" "))
+					sugar.Infoln(
+						"uri", r.RequestURI,
+						"method", r.Method,
+						"description", err,
+					)
+					h.ServeHTTP(w, r)
+					return
+				}
+
+				cookie := http.Cookie{
+					Name:    "Authorization",
+					Expires: time.Now().Add(TokenEXP),
+					Value:   tokenString,
+				}
+				http.SetCookie(w, &cookie)
+				userID = GetUserID(tokenString)
+			}
+
+			if len(token.String()) > 0 {
+				userID = GetUserID(token.Value)
+			}
+			//userID = 0
+			values := url.Values{}
+			values.Add("userID", fmt.Sprintf("%d", userID))
+			r.PostForm = values
+
+			if userID == 0 {
+				w.WriteHeader(http.StatusUnauthorized)
 				w.Write([]byte(" "))
 				sugar.Infoln(
 					"uri", r.RequestURI,
 					"method", r.Method,
-					"description", err,
+					"description", "User unauthorized",
 				)
 				h.ServeHTTP(w, r)
 				return
 			}
-
-			cookie := http.Cookie{
-				Name:    "Authorization",
-				Expires: time.Now().Add(TokenEXP),
-				Value:   tokenString,
-			}
-			http.SetCookie(w, &cookie)
-			userID = GetUserID(tokenString)
 		}
-
-		if len(token.String()) > 0 {
-			userID = GetUserID(token.Value)
-		}
-		//userID = 0
-		values := url.Values{}
-		values.Add("userID", fmt.Sprintf("%d", userID))
-		r.PostForm = values
-
-		if userID == 0 {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(" "))
-			sugar.Infoln(
-				"uri", r.RequestURI,
-				"method", r.Method,
-				"description", "User unauthorized",
-			)
-			h.ServeHTTP(w, r)
-			return
-		}
-		//}
 		h.ServeHTTP(w, r)
 	}
 
