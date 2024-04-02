@@ -19,7 +19,27 @@ type (
 		sync.RWMutex
 		urls map[string]string
 	}
+	Semaphore struct {
+		semaCh chan struct{}
+	}
 )
+
+// NewSemaphore создает семафор с буферизованным каналом емкостью maxReq
+func NewSemaphore(maxReq int) *Semaphore {
+	return &Semaphore{
+		semaCh: make(chan struct{}, maxReq),
+	}
+}
+
+// когда горутина запускается, отправляем пустую структуру в канал semaCh
+func (s *Semaphore) Acquire() {
+	s.semaCh <- struct{}{}
+}
+
+// когда горутина завершается, из канала semaCh убирается пустая структура
+func (s *Semaphore) Release() {
+	<-s.semaCh
+}
 
 func (dbms *StoreDBMS) GetConn() (*sql.Conn, error) {
 	ctx := context.Background()
@@ -48,7 +68,8 @@ func (dbms *StoreDBMS) CreateTable() error {
 	CREATE TABLE IF NOT EXISTS ya.shortener (
 		key varchar(10) not null, 
 		url text,
-		user_id int
+		user_id int,
+		is_deleted bool
 	)
 	`
 	_, err := dbms.DB.ExecContext(ctx, sql)
@@ -82,7 +103,7 @@ func (dbms *StoreDBMS) CreateIndex() error {
 
 // add new shortener and return key
 func (dbms *StoreDBMS) GetShortener(url string) (string, error) {
-	sqlBefore := "SELECT key, url FROM ya.shortener WHERE url like '" + url + "%' order by length(url) asc limit 1"
+	sqlBefore := "SELECT key, ur FROM ya.shortener WHERE url like '" + url + "%' order by length(url) asc limit 1"
 
 	sql := `MERGE INTO ya.shortener ys using
 				(SELECT $1 url) res ON (ys.url = res.url) 
@@ -126,14 +147,18 @@ func (dbms *StoreDBMS) GetShortener(url string) (string, error) {
 
 // get shortener by url
 func (dbms *StoreDBMS) FindExistingKey(key string) (string, bool) {
-	sql := "SELECT url FROM ya.shortener WHERE key = $1"
+	sql := "SELECT url, coalesce(is_deleted, false) is_deleted FROM ya.shortener WHERE key = $1"
 	var url string
+	var isDeleted bool
 	ctx := context.Background()
-	err := dbms.DB.QueryRowContext(ctx, sql, key).Scan(&url)
+	err := dbms.DB.QueryRowContext(ctx, sql, key).Scan(&url, &isDeleted)
 	if err != nil {
 		return "", false
 	}
 
+	if isDeleted {
+		return "", true
+	}
 	return url, true
 }
 
@@ -202,9 +227,8 @@ func (dbms *StoreDBMS) GetURLs(userID int) (map[string]string, error) {
 	if err != nil {
 		return result.urls, err
 	}
-	rows, err := stmt.QueryContext(ctx, userID)
 
-	//rows, err := dbms.DB.QueryContext(ctx, sql)
+	rows, err := stmt.QueryContext(ctx, userID)
 	if err != nil {
 		return result.urls, err
 	}
@@ -219,4 +243,40 @@ func (dbms *StoreDBMS) GetURLs(userID int) (map[string]string, error) {
 		result.RWMutex.Unlock()
 	}
 	return result.urls, nil
+}
+
+func (dbms *StoreDBMS) SoftDeleteURLs(userID int, keys ...string) error {
+	var wg sync.WaitGroup
+	ctx := context.Background()
+	var errList = make([]string, 0)
+	semaphore := NewSemaphore(4)
+
+	for _, keyString := range keys {
+		wg.Add(1)
+		go func(idKey string) {
+			semaphore.Acquire()
+			defer wg.Done()
+			defer semaphore.Release()
+			sql := "UPDATE ya.shortener SET is_deleted=true where key=$1 and user_id=$2"
+			stmt, err := dbms.DB.PrepareContext(ctx, sql)
+			if err != nil {
+				errList = append(errList, idKey)
+				fmt.Println("\nerror with sql prepare for key=", idKey, userID)
+			}
+
+			_, err = stmt.ExecContext(ctx, idKey)
+			if err != nil {
+				errList = append(errList, idKey)
+				fmt.Println("\nerror during execute for key=", idKey)
+			}
+
+		}(keyString)
+	}
+	wg.Wait()
+
+	if len(errList) > 0 {
+		return errors.New("during soft delete records where found some errors")
+	}
+
+	return nil
 }

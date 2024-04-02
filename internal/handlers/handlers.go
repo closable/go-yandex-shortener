@@ -18,6 +18,7 @@ type Storager interface {
 	Ping() bool
 	PrepareStore()
 	GetURLs(userID int) (map[string]string, error)
+	SoftDeleteURLs(userID int, key ...string) error
 }
 
 type (
@@ -195,6 +196,18 @@ func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Requ
 		)
 		return
 	}
+
+	if ok && len(url) == 0 {
+		w.WriteHeader(http.StatusGone)
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", "record was deleted",
+		)
+		return
+
+	}
+
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)

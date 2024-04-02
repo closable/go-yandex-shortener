@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -98,42 +100,61 @@ func (uh *URLHandler) Compressor(h http.Handler) http.Handler {
 	return http.HandlerFunc(zipFn)
 }
 
-// func (uh *URLHandler) Auth(h http.Handler) http.Handler {
-// 	auth := func(w http.ResponseWriter, r *http.Request) {
-// 		// sugar := *uh.logger.Sugar()
+func (uh *URLHandler) Auth(h http.Handler) http.Handler {
+	auth := func(w http.ResponseWriter, r *http.Request) {
+		sugar := *uh.logger.Sugar()
 
-// 		if r.URL.Path == "/api/user/urls" {
+		//if r.URL.Path == "/api/user/urls" {
+		var userID int
+		token, err := r.Cookie("Authorization")
+		if err != nil {
+			tokenString, err := BuildJWTString()
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(" "))
+				sugar.Infoln(
+					"uri", r.RequestURI,
+					"method", r.Method,
+					"description", err,
+				)
+				h.ServeHTTP(w, r)
+				return
+			}
 
-// 			tokenString, err := BuildJWTString()
-// 			if err != nil {
-// 				log.Fatal(err)
-// 			}
+			cookie := http.Cookie{
+				Name:    "Authorization",
+				Expires: time.Now().Add(TokenEXP),
+				Value:   tokenString,
+			}
+			http.SetCookie(w, &cookie)
+			userID = GetUserID(tokenString)
+		}
 
-// 			cookie := &http.Cookie{
-// 				Name:    "Token",
-// 				Expires: time.Now().Add(TOKEN_EXP),
-// 			}
+		if len(token.String()) > 0 {
+			userID = GetUserID(token.Value)
+		}
+		//userID = 0
+		values := url.Values{}
+		values.Add("userID", fmt.Sprintf("%d", userID))
+		r.PostForm = values
 
-// 			cookie.Value = tokenString
-// 			http.SetCookie(w, cookie)
+		if userID == 0 {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(" "))
+			sugar.Infoln(
+				"uri", r.RequestURI,
+				"method", r.Method,
+				"description", "User unauthorized",
+			)
+			h.ServeHTTP(w, r)
+			return
+		}
+		//}
+		h.ServeHTTP(w, r)
+	}
 
-// 			// cookie := &http.Cookie{
-// 			// 	Name:     "Token",
-// 			// 	Value:    "",
-// 			// 	Path:     "/",
-// 			// 	Expires:  time.Unix(0, 0),
-// 			// 	HttpOnly: true,
-// 			// }
-
-// 			// http.SetCookie(w, cookie)
-
-// 		}
-
-// 		h.ServeHTTP(w, r)
-// 	}
-
-// 	return http.HandlerFunc(auth)
-// }
+	return http.HandlerFunc(auth)
+}
 
 func BuildJWTString() (string, error) {
 	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
@@ -142,7 +163,7 @@ func BuildJWTString() (string, error) {
 			// когда создан токен
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenEXP)),
 		},
-		// собственное утверждениеß
+		// собственное утверждение
 		UserID: 13,
 	})
 
