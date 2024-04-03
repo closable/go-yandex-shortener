@@ -102,14 +102,18 @@ func (dbms *StoreDBMS) CreateIndex() error {
 }
 
 // add new shortener and return key
-func (dbms *StoreDBMS) GetShortener(url string) (string, error) {
+func (dbms *StoreDBMS) GetShortener(userID int, url string) (string, error) {
 	sqlBefore := "SELECT key, url FROM ya.shortener WHERE url like '" + url + "%' order by length(url) asc limit 1"
 
 	sql := `MERGE INTO ya.shortener ys using
 				(SELECT $1 url) res ON (ys.url = res.url) 
 				WHEN NOT MATCHED 
 				THEN INSERT (key, url, user_id) 
-				VALUES (substr(md5(random()::text), 1, 10), res.url, floor(random() * (20-1+1) + 1)::int)`
+				VALUES (
+					substr(md5(random()::text), 1, 10), 
+					res.url, 
+					case when $2 <> 0 then $2 else floor(random() * (20-1+1) + 1)::int end
+					)`
 
 	ctx := context.Background()
 	tx, err := dbms.DB.BeginTx(ctx, nil)
@@ -125,7 +129,7 @@ func (dbms *StoreDBMS) GetShortener(url string) (string, error) {
 		return short, errors.New("409")
 	}
 
-	_, err = tx.ExecContext(ctx, sql, url)
+	_, err = tx.ExecContext(ctx, sql, url, userID)
 	if err != nil {
 		// fmt.Println("!!!!", err) TODO !!! ошибка не обработанаы
 		return "", err

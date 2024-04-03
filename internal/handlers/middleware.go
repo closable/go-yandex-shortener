@@ -103,8 +103,9 @@ func (uh *URLHandler) Compressor(h http.Handler) http.Handler {
 func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 	auth := func(w http.ResponseWriter, r *http.Request) {
 		sugar := *uh.logger.Sugar()
+		w.Header().Set("Content-Type", "application/json")
 
-		if r.URL.Path == "/api/user/urls" {
+		if r.URL.Path == "/api/user/urls" || r.URL.Path == "/" {
 			var userID int
 			token, errCookie := r.Cookie("Authorization")
 			headerAuth := r.Header.Get("Authorization")
@@ -130,16 +131,14 @@ func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 					Value:   tokenString,
 				}
 				http.SetCookie(w, &cookie)
-				r.Header.Set("Authorization", tokenString)
-				// w.Header().Add("Authorization", tokenString)
+				w.Header().Add("Authorization", tokenString)
 				userID = GetUserID(tokenString)
 				fmt.Printf("user get from empty cookies %d\n", userID)
 			}
 
 			if len(token.String()) > 0 {
 				userID = GetUserID(token.Value)
-				// w.Header().Add("Authorization", token.Value)
-				r.Header.Set("Authorization", token.Value)
+				w.Header().Add("Authorization", token.Value)
 				fmt.Printf("user get from existing cookies %d\n", userID)
 			}
 

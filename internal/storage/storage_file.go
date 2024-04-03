@@ -141,7 +141,7 @@ func (s *StoregeFile) FindExistingKey(keyText string) (string, bool) {
 	return "", false
 }
 
-func (s *StoregeFile) GetShortener(urlText string) (string, error) {
+func (s *StoregeFile) GetShortener(userID int, urlText string) (string, error) {
 	var shorterner string
 
 	shorterner = s.FindKeyByValue(urlText)
@@ -163,7 +163,7 @@ func (s *StoregeFile) GetShortener(urlText string) (string, error) {
 }
 
 func (s *StoregeFile) Ping() bool {
-	shortener, _ := s.GetShortener("ping")
+	shortener, _ := s.GetShortener(0, "ping")
 	return len(shortener) != 0
 }
 
