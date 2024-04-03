@@ -258,17 +258,26 @@ func (dbms *StoreDBMS) SoftDeleteURLs(userID int, keys ...string) error {
 			semaphore.Acquire()
 			defer wg.Done()
 			defer semaphore.Release()
-			sql := "UPDATE ya.shortener SET is_deleted=true where key=$1 and user_id=$2 and not is_deleted"
-			stmt, err := dbms.DB.PrepareContext(ctx, sql)
+
+			tx, _ := dbms.DB.BeginTx(ctx, nil)
+
+			defer tx.Rollback()
+
+			sql := "UPDATE ya.shortener SET is_deleted=true where key=$1 and user_id=$2 and not coalesce(is_deleted, false)"
+			stmt, err := tx.PrepareContext(ctx, sql)
 			if err != nil {
 				errList = append(errList, idKey)
 				fmt.Println("\nerror with sql prepare for key=", idKey, userID)
 			}
 
-			_, err = stmt.ExecContext(ctx, idKey)
+			_, err = stmt.ExecContext(ctx, idKey, userID)
 			if err != nil {
 				errList = append(errList, idKey)
 				fmt.Println("\nerror during execute for key=", idKey)
+			}
+
+			if err = tx.Commit(); err != nil {
+				fmt.Println("tx error ", err)
 			}
 
 		}(keyString)
