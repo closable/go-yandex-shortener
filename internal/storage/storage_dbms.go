@@ -103,7 +103,7 @@ func (dbms *StoreDBMS) CreateIndex() error {
 
 // add new shortener and return key
 func (dbms *StoreDBMS) GetShortener(userID int, url string) (string, error) {
-	sqlBefore := "SELECT key, url FROM ya.shortener WHERE not is_deleted and url like '" + url + "%' order by length(url) asc limit 1"
+	sqlBefore := "SELECT key, url FROM ya.shortener WHERE url like '" + url + "%' order by length(url) asc limit 1"
 
 	sql := `MERGE INTO ya.shortener ys using
 				(SELECT $1 url) res ON (ys.url = res.url) 
@@ -222,7 +222,7 @@ func (dbms *StoreDBMS) PrepareStore() {
 func (dbms *StoreDBMS) GetURLs(userID int) (map[string]string, error) {
 	var result = &authURLs{urls: make(map[string]string)} // make(map[string]string)
 	ctx := context.Background()
-	sql := "SELECT key, url FROM ya.shortener where user_id = $1 and not is_deleted"
+	sql := "SELECT key, url FROM ya.shortener where user_id = $1"
 
 	stmt, err := dbms.DB.PrepareContext(ctx, sql)
 	if err != nil {
