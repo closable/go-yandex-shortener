@@ -35,7 +35,8 @@ func (uh *URLHandler) GetUrls(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(res) == 0 {
-		w.WriteHeader(http.StatusNoContent)
+		//w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusUnauthorized) // ну как так?, не согласен
 		w.Write([]byte(" "))
 		sugar.Infoln(
 			"uri", r.RequestURI,
