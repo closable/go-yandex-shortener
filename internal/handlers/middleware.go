@@ -110,7 +110,7 @@ func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 			var userID int
 			token, errCookie := r.Cookie("Authorization")
 			headerAuth := r.Header.Get("Authorization")
-			fmt.Printf("-1 %s 2- %s 3- %s len(headauth)-%d\n", token, errCookie, headerAuth, len(headerAuth))
+			//fmt.Printf("-1 %s 2- %s 3- %s ", token, errCookie, headerAuth)
 			// if errCookie has err && headerAuth empty
 			if errCookie != nil && len(headerAuth) == 0 {
 				tokenString, err := BuildJWTString()
@@ -181,7 +181,7 @@ func BuildJWTString() (string, error) {
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenEXP)),
 		},
 		// собственное утверждение
-		UserID: rand.Intn(2),
+		UserID: rand.Intn(1000),
 	})
 
 	// создаём строку токена
