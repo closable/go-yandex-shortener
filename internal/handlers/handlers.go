@@ -146,7 +146,7 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		userID = 0
 	}
-	fmt.Print("!!!!!!!", userID)
+
 	shortener, err = uh.store.GetShortener(userID, string(info))
 	if err != nil {
 		if err.Error() != "409" {

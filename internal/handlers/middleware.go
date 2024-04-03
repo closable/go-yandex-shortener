@@ -109,7 +109,7 @@ func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 			var userID int
 			token, errCookie := r.Cookie("Authorization")
 			headerAuth := r.Header.Get("Authorization")
-			fmt.Println("-----", token, errCookie, headerAuth)
+			fmt.Printf("-1 %s 2- %s 3- %s len(headauth)-%d", token, errCookie, headerAuth, len(headerAuth))
 			// if errCookie has err && headerAuth empty
 			if errCookie != nil && len(headerAuth) == 0 {
 				tokenString, err := BuildJWTString()
@@ -144,6 +144,7 @@ func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 
 			if len(headerAuth) > 0 && userID == 0 {
 				userID = GetUserID(headerAuth)
+				w.Header().Add("Authorization", headerAuth)
 				fmt.Printf("user get from existing header %d\n", userID)
 			}
 
