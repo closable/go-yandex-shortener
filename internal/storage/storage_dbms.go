@@ -103,7 +103,7 @@ func (dbms *StoreDBMS) CreateIndex() error {
 
 // add new shortener and return key
 func (dbms *StoreDBMS) GetShortener(userID int, url string) (string, error) {
-	sqlBefore := "SELECT key, url FROM ya.shortener WHERE url like '" + url + "%' order by length(url) asc limit 1"
+	sqlBefore := "SELECT key, url FROM ya.shortener WHERE not is_deleted and url like '" + url + "%' order by length(url) asc limit 1"
 
 	sql := `MERGE INTO ya.shortener ys using
 				(SELECT $1 url) res ON (ys.url = res.url) 
@@ -222,7 +222,7 @@ func (dbms *StoreDBMS) PrepareStore() {
 func (dbms *StoreDBMS) GetURLs(userID int) (map[string]string, error) {
 	var result = &authURLs{urls: make(map[string]string)} // make(map[string]string)
 	ctx := context.Background()
-	sql := "SELECT key, url FROM ya.shortener where user_id = $1"
+	sql := "SELECT key, url FROM ya.shortener where user_id = $1 and not is_deleted"
 
 	stmt, err := dbms.DB.PrepareContext(ctx, sql)
 	if err != nil {
@@ -258,7 +258,7 @@ func (dbms *StoreDBMS) SoftDeleteURLs(userID int, keys ...string) error {
 			semaphore.Acquire()
 			defer wg.Done()
 			defer semaphore.Release()
-			sql := "UPDATE ya.shortener SET is_deleted=true where key=$1 and user_id=$2"
+			sql := "UPDATE ya.shortener SET is_deleted=true where key=$1 and user_id=$2 and not is_deleted"
 			stmt, err := dbms.DB.PrepareContext(ctx, sql)
 			if err != nil {
 				errList = append(errList, idKey)
