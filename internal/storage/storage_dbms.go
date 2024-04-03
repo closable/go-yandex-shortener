@@ -275,6 +275,12 @@ func (dbms *StoreDBMS) SoftDeleteURLs(userID int, keys ...string) error {
 	}
 	wg.Wait()
 
+	del := "delete from ya.shortener where is_deleted"
+	_, err := dbms.DB.ExecContext(ctx, del)
+	if err != nil {
+		return err
+	}
+
 	if len(errList) > 0 {
 		return errors.New("during soft delete records where found some errors")
 	}
