@@ -41,8 +41,8 @@ func NewFile(fileName string) (*StoregeFile, error) {
 
 }
 
-func (st *StoregeFile) WriteEvent(event *Event) error {
-	return st.Encoder.Encode(&event)
+func (s *StoregeFile) WriteEvent(event *Event) error {
+	return s.Encoder.Encode(&event)
 }
 
 func NewConsumer(fileName string) (*Consumer, error) {
@@ -58,8 +58,8 @@ func NewConsumer(fileName string) (*Consumer, error) {
 	}, nil
 }
 
-func (st *StoregeFile) Close() error {
-	return st.File.Close()
+func (s *StoregeFile) Close() error {
+	return s.File.Close()
 }
 
 // func loadDataFromFile(file *os.File) error {
@@ -82,9 +82,9 @@ func (st *StoregeFile) Close() error {
 // 	return nil
 // }
 
-func (st *StoregeFile) FindKeyByValue(urlText string) string {
+func (s *StoregeFile) FindKeyByValue(urlText string) string {
 
-	consumer, err := NewConsumer(st.File.Name())
+	consumer, err := NewConsumer(s.File.Name())
 	if err != nil {
 		return ""
 	}
@@ -111,9 +111,9 @@ func (st *StoregeFile) FindKeyByValue(urlText string) string {
 	return ""
 }
 
-func (st *StoregeFile) FindExistingKey(keyText string) (string, bool) {
+func (s *StoregeFile) FindExistingKey(keyText string) (string, bool) {
 
-	consumer, err := NewConsumer(st.File.Name())
+	consumer, err := NewConsumer(s.File.Name())
 	if err != nil {
 		return "", false
 	}
@@ -141,16 +141,16 @@ func (st *StoregeFile) FindExistingKey(keyText string) (string, bool) {
 	return "", false
 }
 
-func (st *StoregeFile) GetShortener(urlText string) (string, error) {
+func (s *StoregeFile) GetShortener(userID int, urlText string) (string, error) {
 	var shorterner string
 
-	shorterner = st.FindKeyByValue(urlText)
+	shorterner = s.FindKeyByValue(urlText)
 	if len(shorterner) > 0 {
 		return shorterner, nil
 	}
 
 	shorterner = utils.GetRandomKey(6)
-	err := st.WriteEvent(&Event{
+	err := s.WriteEvent(&Event{
 		UUID:       utils.GetRandomKey(10),
 		ShortURL:   shorterner,
 		OriginlURL: string(urlText),
@@ -162,10 +162,19 @@ func (st *StoregeFile) GetShortener(urlText string) (string, error) {
 	return shorterner, nil
 }
 
-func (st *StoregeFile) Ping() bool {
-	shortener, _ := st.GetShortener("ping")
+func (s *StoregeFile) Ping() bool {
+	shortener, _ := s.GetShortener(0, "ping")
 	return len(shortener) != 0
 }
 
-func (st *StoregeFile) PrepareStore() {
+func (s *StoregeFile) PrepareStore() {
+}
+
+func (s *StoregeFile) GetURLs(userID int) (map[string]string, error) {
+	var result = make(map[string]string)
+	return result, nil
+}
+
+func (s *StoregeFile) SoftDeleteURLs(userID int, key ...string) error {
+	return nil
 }

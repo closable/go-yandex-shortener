@@ -26,7 +26,7 @@ func (s *Store) AddItem(key string, url string) (string, error) {
 	return key, nil
 }
 
-func (s *Store) GetShortener(txtURL string) (string, error) {
+func (s *Store) GetShortener(userID int, txtURL string) (string, error) {
 	shortener := ""
 	// it needs for exclude existing urls
 	s.mu.Lock()
@@ -72,4 +72,12 @@ func (s *Store) Ping() bool {
 }
 
 func (s *Store) PrepareStore() {
+}
+
+func (s *Store) GetURLs(userID int) (map[string]string, error) {
+	return s.Urls, nil
+}
+
+func (s *Store) SoftDeleteURLs(userID int, key ...string) error {
+	return nil
 }

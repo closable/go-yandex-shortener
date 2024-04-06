@@ -2,16 +2,30 @@ package handlers
 
 import (
 	"compress/gzip"
+	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
-type gzipWriter struct {
-	http.ResponseWriter
-	Writer io.Writer
-}
+const TokenEXP = time.Hour * 3
+const SecretKEY = "*HelloWorld*"
+
+type (
+	gzipWriter struct {
+		http.ResponseWriter
+		Writer io.Writer
+	}
+	Claims struct {
+		jwt.RegisteredClaims
+		UserID int
+	}
+)
 
 func (w gzipWriter) Write(b []byte) (int, error) {
 	// w.Writer будет отвечать за gzip-сжатие, поэтому пишем в него
@@ -85,4 +99,109 @@ func (uh *URLHandler) Compressor(h http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(zipFn)
+}
+
+func (uh *URLHandler) Auth(h http.Handler) http.Handler {
+	auth := func(w http.ResponseWriter, r *http.Request) {
+		sugar := *uh.logger.Sugar()
+		w.Header().Set("Content-Type", "application/json")
+
+		if r.URL.Path == "/api/user/urls" || r.URL.Path == "/" {
+			var userID int
+			token, errCookie := r.Cookie("Authorization")
+			headerAuth := r.Header.Get("Authorization")
+			fmt.Printf("-1 %s 2- %s 3- %s ", token, errCookie, headerAuth)
+			// if errCookie has err && headerAuth empty
+			if errCookie != nil && len(headerAuth) == 0 {
+				tokenString, err := BuildJWTString()
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte(" "))
+					sugar.Infoln(
+						"uri", r.RequestURI,
+						"method", r.Method,
+						"description", err,
+					)
+					h.ServeHTTP(w, r)
+					return
+				}
+
+				cookie := http.Cookie{
+					Name:    "Authorization",
+					Expires: time.Now().Add(TokenEXP),
+					Value:   tokenString,
+				}
+				http.SetCookie(w, &cookie)
+				w.Header().Add("Authorization", tokenString)
+				userID = GetUserID(tokenString)
+				fmt.Printf("user get from empty cookies %d\n", userID)
+			}
+
+			if len(token.String()) > 0 {
+				userID = GetUserID(token.Value)
+				w.Header().Add("Authorization", token.Value)
+				fmt.Printf("user get from existing cookies %d\n", userID)
+			}
+
+			if len(headerAuth) > 0 && userID == 0 {
+				userID = GetUserID(headerAuth)
+				w.Header().Add("Authorization", headerAuth)
+				fmt.Printf("user get from existing header %d\n", userID)
+			}
+
+			//userID = 0
+			values := url.Values{}
+			values.Add("userID", fmt.Sprintf("%d", userID))
+			r.PostForm = values
+
+			if userID == 0 {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte(" "))
+				sugar.Infoln(
+					"uri", r.RequestURI,
+					"method", r.Method,
+					"description", "User unauthorized",
+				)
+				h.ServeHTTP(w, r)
+				return
+			}
+		}
+		h.ServeHTTP(w, r)
+	}
+
+	return http.HandlerFunc(auth)
+}
+
+func BuildJWTString() (string, error) {
+	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			// когда создан токен
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenEXP)),
+		},
+		// собственное утверждение
+		UserID: rand.Intn(1000),
+	})
+
+	// создаём строку токена
+	tokenString, err := token.SignedString([]byte(SecretKEY))
+	if err != nil {
+		return "", err
+	}
+
+	// возвращаем строку токена
+	return tokenString, nil
+}
+
+func GetUserID(tokenString string) int {
+	// создаём экземпляр структуры с утверждениями
+	claims := &Claims{}
+	// парсим из строки токена tokenString в структуру claims
+	jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		return []byte(SecretKEY), nil
+	})
+
+	// возвращаем ID пользователя в читаемом виде
+	return claims.UserID
 }

@@ -7,16 +7,19 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/closable/go-yandex-shortener/internal/utils"
 	"go.uber.org/zap"
 )
 
 type Storager interface {
-	GetShortener(txtURL string) (string, error)
+	GetShortener(userID int, txtURL string) (string, error)
 	FindExistingKey(keyText string) (string, bool)
 	Ping() bool
 	PrepareStore()
+	GetURLs(userID int) (map[string]string, error)
+	SoftDeleteURLs(userID int, key ...string) error
 }
 
 type (
@@ -139,8 +142,12 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
+	userID, err := strconv.Atoi(r.FormValue("userID"))
+	if err != nil {
+		userID = 0
+	}
 
-	shortener, err = uh.store.GetShortener(string(info))
+	shortener, err = uh.store.GetShortener(userID, string(info))
 	if err != nil {
 		if err.Error() != "409" {
 			w.WriteHeader(http.StatusBadRequest)
@@ -194,6 +201,18 @@ func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Requ
 		)
 		return
 	}
+
+	if ok && len(url) == 0 {
+		w.WriteHeader(http.StatusGone)
+		sugar.Infoln(
+			"uri", r.RequestURI,
+			"method", r.Method,
+			"description", "record was deleted",
+		)
+		return
+
+	}
+
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
@@ -241,9 +260,13 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 		// change behaviour when requeust doesn't have the protocol 26-02-24
 		jsonURL.URL = "http://" + jsonURL.URL
 	}
-
-	shortener, err = uh.store.GetShortener(jsonURL.URL)
+	userID, err := strconv.Atoi(r.FormValue("userID"))
 	if err != nil {
+		userID = 0
+	}
+	shortener, err = uh.store.GetShortener(userID, jsonURL.URL)
+	if err != nil {
+
 		if err.Error() != "409" {
 			resp, _ := json.Marshal(createRespondBody(errURL))
 			w.WriteHeader(http.StatusInternalServerError)
@@ -260,7 +283,6 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 	}
 
 	body = makeShortenURL(shortener, uh.baseURL)
-
 	resp, err := json.Marshal(createRespondBody(body))
 	if err != nil {
 		resp, _ := json.Marshal(createRespondBody(errURL))
@@ -314,6 +336,10 @@ func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 	}
 	var bacthResp = []JSONBatchRespond{}
 	var URL string
+	userID, err := strconv.Atoi(r.FormValue("userID"))
+	if err != nil {
+		userID = 0
+	}
 
 	if len(*jsonData) > 0 {
 		for _, v := range *jsonData {
@@ -323,7 +349,7 @@ func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 				URL = v.OriginalURL
 			}
 
-			shortener, _ := uh.store.GetShortener(URL)
+			shortener, _ := uh.store.GetShortener(userID, URL)
 			body := makeShortenURL(shortener, uh.baseURL)
 
 			item := &JSONBatchRespond{
