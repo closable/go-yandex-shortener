@@ -3,14 +3,20 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/closable/go-yandex-shortener/internal/config"
 	"github.com/closable/go-yandex-shortener/internal/handlers"
 	"github.com/closable/go-yandex-shortener/internal/storage"
 )
 
+var buildVersion, buildDate, buildCommit = "N/A", "N/A", "N/A"
+
 func main() {
+	// go run -ldflags "-X main.buildVersion=v1.0.1 -X 'main.buildDate=$(date +'%Y/%m/%d %H:%M:%S')'" cmd/shortener/main.go
+	// go build -ldflags "-X main.buildVersion=v1.0.1 -X 'main.buildDate=$(date +'%Y/%m/%d %H:%M:%S')'" cmd/shortener/main.go
+	// start bin file -> ./main
+	fmt.Printf("Build version:%s\nBuild date:%s\nBuild commit:%s\n", buildVersion, buildDate, buildCommit)
+
 	if err := run(); err != nil {
 		panic(err)
 	}
@@ -41,7 +47,8 @@ func run() error {
 
 	if err != nil {
 		sugar.Panicln("Store invalid")
-		os.Exit(1)
+		//os.Exit(1)
+		panic(err)
 	}
 
 	handler := handlers.New(store, cfg.BaseURL, logger, 1)
