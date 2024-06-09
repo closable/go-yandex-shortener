@@ -10,6 +10,7 @@ import (
 )
 
 type (
+	// BatchBody структура описания тела для массового импорта данных
 	BatchBody struct {
 		CorrelationID string `json:"correlation_id"`
 		OriginalURL   string `json:"original_url"`

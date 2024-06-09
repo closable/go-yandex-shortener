@@ -11,14 +11,17 @@ import (
 )
 
 type (
+	// StoreDBMS модель данных
 	StoreDBMS struct {
 		DB *sql.DB
 		//CTX context.Context
 	}
+	//authURLs модель хранения
 	authURLs struct {
 		sync.RWMutex
 		urls map[string]string
 	}
+	// Semaphore структуа модели
 	Semaphore struct {
 		semaCh chan struct{}
 	}

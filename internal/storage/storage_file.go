@@ -11,15 +11,18 @@ import (
 )
 
 type (
+	//Event Структора для работы JSON
 	Event struct {
 		UUID       string `json:"uud"`
 		ShortURL   string `json:"short_url"`
 		OriginlURL string `json:"original_url"`
 	}
+	// StoregeFile структура файлового хранилища
 	StoregeFile struct {
 		File    *os.File
 		Encoder *json.Encoder
 	}
+	// Consumer Структура для работы с файлововым хранилищем
 	Consumer struct {
 		File    *os.File
 		Decoder *json.Decoder
@@ -42,10 +45,12 @@ func NewFile(fileName string) (*StoregeFile, error) {
 
 }
 
+// WriteEvent для записи в файловое хранилище
 func (s *StoregeFile) WriteEvent(event *Event) error {
 	return s.Encoder.Encode(&event)
 }
 
+// NewConsumer создание нового экземпляра
 func NewConsumer(fileName string) (*Consumer, error) {
 
 	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0666)
@@ -59,6 +64,7 @@ func NewConsumer(fileName string) (*Consumer, error) {
 	}, nil
 }
 
+// Close функция хакрытия файового хранилища
 func (s *StoregeFile) Close() error {
 	return s.File.Close()
 }

@@ -14,14 +14,19 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+// TokenEXP Константа для создания токена
 const TokenEXP = time.Hour * 3
+
+// SecretKEY Константа для создания токена
 const SecretKEY = "*HelloWorld*"
 
 type (
+	//struct Структура для работы compressor
 	gzipWriter struct {
 		http.ResponseWriter
 		Writer io.Writer
 	}
+	// Claims Структура для работы autheticator
 	Claims struct {
 		jwt.RegisteredClaims
 		UserID int

@@ -16,11 +16,15 @@ type config struct {
 }
 
 var (
-	FlagRunAddr   string
-	FlagSendAddr  string
+	// Адрес сервера
+	FlagRunAddr string
+	// Адрес выдачи информации
+	FlagSendAddr string
+	// Использование файлового хранилища
 	FlagFileStore string
-	FlagDSN       string
-	configEnv     = config{}
+	// Использование СУБД
+	FlagDSN   string
+	configEnv = config{}
 )
 
 // ParseConfigEnv парсинг переменных среды окружения
