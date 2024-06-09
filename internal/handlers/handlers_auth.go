@@ -8,8 +8,9 @@ import (
 	"strconv"
 )
 
+// Перечень структура данных
 type (
-	// Структура для работы JSON
+	// AuthItemURL Структура для работы JSON
 	AuthItemURL struct {
 		OriginalURL string `json:"original_url"`
 		ShortURL    string `json:"short_url"`

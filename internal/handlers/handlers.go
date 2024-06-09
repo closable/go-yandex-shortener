@@ -23,28 +23,29 @@ type Storager interface {
 	SoftDeleteURLs(userID int, key ...string) error
 }
 
+// Перечеь структура данных
 type (
-	// Стуктура для работы с shortener
+	// URLHandler Стуктура для работы с shortener
 	URLHandler struct {
 		store     Storager
 		baseURL   string
 		logger    zap.Logger
 		maxLength int64
 	}
-	// Структура для работы JSON
+	// JSONRequest Структура для работы JSON
 	JSONRequest struct {
 		URL string `json:"url"`
 	}
-	// Структура для работы JSON
+	// JSONRespond Структура для работы JSON
 	JSONRespond struct {
 		Result string `json:"result"`
 	}
-	// Структура для работы JSON
+	//JSONBatch Структура для работы JSON
 	JSONBatch struct {
 		CorrelationID string `json:"correlation_id"`
 		OriginalURL   string `json:"original_url"`
 	}
-	// Структура для работы JSON
+	//JSONBatchRespond Структура для работы JSON
 	JSONBatchRespond struct {
 		CorrelationID string `json:"correlation_id"`
 		ShortURL      string `json:"short_url"`

@@ -10,6 +10,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// Описание структур данных
 type (
 	// StoreDBMS модель данных
 	StoreDBMS struct {

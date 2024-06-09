@@ -10,6 +10,7 @@ import (
 	"github.com/closable/go-yandex-shortener/internal/utils"
 )
 
+// Описание структур данных
 type (
 	//Event Структора для работы JSON
 	Event struct {

@@ -8,6 +8,7 @@ import (
 	"github.com/caarlos0/env/v10"
 )
 
+// config описание структур данных среды окружения
 type config struct {
 	ServerAddress string `env:"SERVER_ADDRESS"`
 	BaseURL       string `env:"BASE_URL"`
@@ -15,6 +16,7 @@ type config struct {
 	DSN           string `env:"DATABASE_DSN"`
 }
 
+// переменные
 var (
 	// Адрес сервера
 	FlagRunAddr string
