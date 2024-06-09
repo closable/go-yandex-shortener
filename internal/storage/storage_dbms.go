@@ -31,16 +31,17 @@ func NewSemaphore(maxReq int) *Semaphore {
 	}
 }
 
-// когда горутина запускается, отправляем пустую структуру в канал semaCh
+// Acquire когда горутина запускается, отправляем пустую структуру в канал semaCh
 func (s *Semaphore) Acquire() {
 	s.semaCh <- struct{}{}
 }
 
-// когда горутина завершается, из канала semaCh убирается пустая структура
+// Release когда горутина завершается, из канала semaCh убирается пустая структура
 func (s *Semaphore) Release() {
 	<-s.semaCh
 }
 
+// GetConn получение коннекта к СУБД
 func (dbms *StoreDBMS) GetConn() (*sql.Conn, error) {
 	ctx := context.Background()
 	conn, err := dbms.DB.Conn(ctx)
@@ -48,7 +49,7 @@ func (dbms *StoreDBMS) GetConn() (*sql.Conn, error) {
 	return conn, err
 }
 
-// create schena if schema doesn't exists
+// CreateSchema create schena if schema doesn't exists
 func (dbms *StoreDBMS) CreateSchema() error {
 	sql := "CREATE SCHEMA IF NOT EXISTS ya AUTHORIZATION postgres"
 	ctx := context.Background()
@@ -60,7 +61,7 @@ func (dbms *StoreDBMS) CreateSchema() error {
 	return nil
 }
 
-// create table if table doesn't exists
+// CreateTable create table if table doesn't exists
 func (dbms *StoreDBMS) CreateTable() error {
 	// sql := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (key varchar(10) not null, url text)", name)
 	ctx := context.Background()
@@ -79,6 +80,7 @@ func (dbms *StoreDBMS) CreateTable() error {
 	return nil
 }
 
+// CreateIndex создает индех при необходимости
 func (dbms *StoreDBMS) CreateIndex() error {
 	var cnt int
 	sql := `select count(*) from pg_indexes where tablename = 'shortener' and indexname = 'url'`
@@ -101,7 +103,7 @@ func (dbms *StoreDBMS) CreateIndex() error {
 	return nil
 }
 
-// add new shortener and return key
+// GetShortener add new shortener and return key
 func (dbms *StoreDBMS) GetShortener(userID int, url string) (string, error) {
 	sqlBefore := "SELECT key, url FROM ya.shortener WHERE url like '" + url + "%' order by length(url) asc limit 1"
 
@@ -146,7 +148,7 @@ func (dbms *StoreDBMS) GetShortener(userID int, url string) (string, error) {
 	return shortener, nil
 }
 
-// get shortener by url
+// FindExistingKey  get shortener by url
 func (dbms *StoreDBMS) FindExistingKey(key string) (string, bool) {
 	sql := "SELECT url, coalesce(is_deleted, false) is_deleted FROM ya.shortener WHERE key = $1"
 	var url string
@@ -163,6 +165,7 @@ func (dbms *StoreDBMS) FindExistingKey(key string) (string, bool) {
 	return url, true
 }
 
+// FindKeyByValue поиск ключа по значению
 func (dbms *StoreDBMS) FindKeyByValue(url string) (string, bool) {
 	sql := "SELECT key FROM ya.shortener WHERE url is not null and url = $1"
 	var key string
@@ -175,6 +178,7 @@ func (dbms *StoreDBMS) FindKeyByValue(url string) (string, bool) {
 	return key, true
 }
 
+// NewDBMS новый экземпляр СУБД
 func NewDBMS(connString string) (*StoreDBMS, error) {
 	//ctx := context.Background()
 	db, err := sql.Open("pgx", connString)
@@ -189,6 +193,7 @@ func NewDBMS(connString string) (*StoreDBMS, error) {
 	}, nil
 }
 
+// Ping функция контроля работоспособности СУБД
 func (dbms *StoreDBMS) Ping() bool {
 	conn, err := dbms.GetConn()
 	if err != nil {
@@ -200,6 +205,7 @@ func (dbms *StoreDBMS) Ping() bool {
 	return err == nil
 }
 
+// PrepareStore функция подготовки хранилища при 1м запуске
 func (dbms *StoreDBMS) PrepareStore() {
 
 	err := dbms.CreateSchema()
@@ -219,6 +225,7 @@ func (dbms *StoreDBMS) PrepareStore() {
 
 }
 
+// GetURLs получение urls пользователя
 func (dbms *StoreDBMS) GetURLs(userID int) (map[string]string, error) {
 	var result = &authURLs{urls: make(map[string]string)} // make(map[string]string)
 	ctx := context.Background()
@@ -246,6 +253,7 @@ func (dbms *StoreDBMS) GetURLs(userID int) (map[string]string, error) {
 	return result.urls, nil
 }
 
+// SoftDeleteURLs мягкое уалене занечений из СУБД
 func (dbms *StoreDBMS) SoftDeleteURLs(userID int, keys ...string) error {
 	var wg sync.WaitGroup
 	ctx := context.Background()

@@ -15,6 +15,7 @@ type (
 	}
 )
 
+// GetUrls функция для получения urls пользователя
 func (uh *URLHandler) GetUrls(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	userID, _ := strconv.Atoi(r.FormValue("userID"))
@@ -69,6 +70,7 @@ func (uh *URLHandler) GetUrls(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(resp))
 }
 
+// DelUrls функция для удаления указанных значений
 func (uh *URLHandler) DelUrls(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	userID, _ := strconv.Atoi(r.FormValue("userID"))
@@ -123,6 +125,7 @@ func (uh *URLHandler) DelUrls(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(" "))
 }
 
+// makeAuthRequestRow функция помошник для составления тела запроса
 func makeAuthRequestRow(key, url string) AuthItemURL {
 	var res = &AuthItemURL{
 		ShortURL:    key,

@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Storager интерфейс реализации функционала
 type Storager interface {
 	GetShortener(userID int, txtURL string) (string, error)
 	FindExistingKey(keyText string) (string, bool)
@@ -52,6 +53,7 @@ var (
 	notFoundID = "Error! id is not found or empty"
 )
 
+// New создание экземпляра храения информаци
 func New(st Storager, baseURL string, logger zap.Logger, maxLength int64) *URLHandler {
 	st.PrepareStore()
 	// load stored data
@@ -72,6 +74,7 @@ func New(st Storager, baseURL string, logger zap.Logger, maxLength int64) *URLHa
 	}
 }
 
+// ResponseWriter исновной интерфейс для реализаци функционала
 type ResponseWriter interface {
 	//Header() Header
 	Write([]byte) (int, error)
@@ -105,6 +108,7 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode // захватываем код статуса
 }
 
+// GenerateShortener функция сокращения URL
 func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	shortener := ""
@@ -172,6 +176,7 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 
 }
 
+// GetEndpointByShortener функция для возвращения URL по указанному сокращению
 func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	shortener := ""
@@ -218,6 +223,7 @@ func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// GenerateJSONShortener функция сокращения URL для для JSON
 func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	shortener := ""
@@ -302,6 +308,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 
 }
 
+// UploadBatch функция для массовой загрузки данны в хранилище
 func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	var jsonData = &[]JSONBatch{}
@@ -378,6 +385,7 @@ func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// makeShortenURL вспомогательная  функция
 func makeShortenURL(URL string, baseURL string) string {
 	adr, _ := url.Parse(baseURL)
 	if len(adr.Host) == 0 {
@@ -387,6 +395,7 @@ func makeShortenURL(URL string, baseURL string) string {
 	}
 }
 
+// createRespondBody вспомогательная  функция
 func createRespondBody(result string) JSONRespond {
 	var respExtend = &JSONRespond{
 		Result: result,

@@ -1,3 +1,4 @@
+// Package config служит для получения данных от входящего окружения
 package config
 
 import (
@@ -22,11 +23,12 @@ var (
 	configEnv     = config{}
 )
 
+// ParseConfigEnv парсинг переменных среды окружения
 func ParseConfigEnv() {
 	env.Parse(&configEnv)
 }
 
-// parseFlags обрабатывает аргументы командной строки
+// ParseFlags обрабатывает аргументы командной строки
 // и сохраняет их значения в соответствующих переменных
 func ParseFlags() {
 	// регистрируем переменную flagRunAddr
@@ -43,7 +45,7 @@ func ParseFlags() {
 	flag.Parse()
 }
 
-// загружаем данные среды окружения
+// LoadConfig загружаем данные среды окружения
 func LoadConfig() *config {
 	ParseConfigEnv()
 	ParseFlags()
@@ -60,6 +62,7 @@ func LoadConfig() *config {
 	return config
 }
 
+// firstValue вспомогательная функция для выбора входящих значений
 func firstValue(valEnv *string, valFlag *string) string {
 	if len(*valEnv) > 0 {
 		return *valEnv

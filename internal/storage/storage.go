@@ -1,3 +1,4 @@
+// Package storage реализует функцонал хранения данных
 package storage
 
 import (
@@ -13,6 +14,7 @@ type Store struct {
 	Urls map[string]string
 }
 
+// NewMemory Создание нового экземпляра хранения в памяти
 func NewMemory() (*Store, error) {
 	return &Store{Urls: make(map[string]string)}, nil
 }
@@ -21,11 +23,13 @@ func (s *Store) Length() int {
 	return len(s.Urls)
 }
 
+// AddItem Добавление нового элемента
 func (s *Store) AddItem(key string, url string) (string, error) {
 	s.Urls[key] = url
 	return key, nil
 }
 
+// GetShortener полчение сокращения URL
 func (s *Store) GetShortener(userID int, txtURL string) (string, error) {
 	shortener := ""
 	// it needs for exclude existing urls
@@ -50,6 +54,7 @@ func (s *Store) GetShortener(userID int, txtURL string) (string, error) {
 	return shortener, nil
 }
 
+// FindKeyByValue Поиск ключа по значениб
 func (s *Store) FindKeyByValue(urlText string) string {
 	for key, value := range s.Urls {
 		if strings.Contains(value, urlText) {
@@ -59,6 +64,7 @@ func (s *Store) FindKeyByValue(urlText string) string {
 	return ""
 }
 
+// FindExistingKey поиск существующего ключа
 func (s *Store) FindExistingKey(keyText string) (string, bool) {
 
 	value, ok := s.Urls[keyText]
@@ -71,13 +77,16 @@ func (s *Store) Ping() bool {
 	return s.Urls["ping"] == "ping"
 }
 
+// PrepareStore Заглушка для удовлетворения интерфейсу
 func (s *Store) PrepareStore() {
 }
 
+// GetURLs Заглушка для удовлетворения интерфейсу
 func (s *Store) GetURLs(userID int) (map[string]string, error) {
 	return s.Urls, nil
 }
 
+// SoftDeleteURLs Заглушка для удовлетворения интерфейсу
 func (s *Store) SoftDeleteURLs(userID int, key ...string) error {
 	return nil
 }

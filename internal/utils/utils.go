@@ -1,3 +1,4 @@
+// Package utils реализует вспомогательные функции для аботы приложения
 package utils
 
 import (
@@ -15,12 +16,13 @@ type (
 	}
 )
 
-// check url
+// ValidateURL check url
 func ValidateURL(txtURL string) bool {
 	u, err := url.Parse(txtURL)
 	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
+// GetRandomKey вспомогательная функция для получения провольного ключа
 func GetRandomKey(length int) string {
 	chars := "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"
 	key := ""
@@ -32,6 +34,7 @@ func GetRandomKey(length int) string {
 	return key
 }
 
+// GenerateBatchBody вспомогательная функция для генерации тела массовой загрузки
 func GenerateBatchBody(itemsCnt int) {
 	arr := []BatchBody{}
 
