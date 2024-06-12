@@ -1,3 +1,4 @@
+// Package handlers реализует функцию для упровления handlers
 package handlers
 
 import (
@@ -13,25 +14,33 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+// TokenEXP Константа для создания токена
 const TokenEXP = time.Hour * 3
+
+// SecretKEY Константа для создания токена
 const SecretKEY = "*HelloWorld*"
 
+// описание структур данных
 type (
+	//gzipWriter struct Структура для работы compressor
 	gzipWriter struct {
 		http.ResponseWriter
 		Writer io.Writer
 	}
+	// Claims Структура для работы autheticator
 	Claims struct {
 		jwt.RegisteredClaims
 		UserID int
 	}
 )
 
+// Write вспомогательная функция для реализации сжатия информации
 func (w gzipWriter) Write(b []byte) (int, error) {
 	// w.Writer будет отвечать за gzip-сжатие, поэтому пишем в него
 	return w.Writer.Write(b)
 }
 
+// Logger middleware для ведения логгирования запросов
 func (uh *URLHandler) Logger(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		sugar := *uh.logger.Sugar()
@@ -61,6 +70,7 @@ func (uh *URLHandler) Logger(h http.Handler) http.Handler {
 	return http.HandlerFunc(logFn)
 }
 
+// Compressor middleware для сжатия запроса
 func (uh *URLHandler) Compressor(h http.Handler) http.Handler {
 	zipFn := func(w http.ResponseWriter, r *http.Request) {
 		sugar := *uh.logger.Sugar()
@@ -101,6 +111,7 @@ func (uh *URLHandler) Compressor(h http.Handler) http.Handler {
 	return http.HandlerFunc(zipFn)
 }
 
+// Auth аутентификация пользователя
 func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 	auth := func(w http.ResponseWriter, r *http.Request) {
 		sugar := *uh.logger.Sugar()
@@ -172,6 +183,7 @@ func (uh *URLHandler) Auth(h http.Handler) http.Handler {
 	return http.HandlerFunc(auth)
 }
 
+// BuildJWTString посроение строки токена аутетификации
 func BuildJWTString() (string, error) {
 	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
 
@@ -194,6 +206,7 @@ func BuildJWTString() (string, error) {
 	return tokenString, nil
 }
 
+// GetUserID вспомогательная функция для определения UserID из токена
 func GetUserID(tokenString string) int {
 	// создаём экземпляр структуры с утверждениями
 	claims := &Claims{}

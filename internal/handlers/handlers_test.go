@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fileStore string = "/tmp/short-url-db.json"
+//var fileStore string = "/tmp/short-url-db.json"
 
 var DSN string = ""
 
@@ -414,3 +414,14 @@ func TestUploadBatch(t *testing.T) {
 		}
 	}
 }
+
+// func ExampleGetUserID() {
+// 	tokenString := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTI3MzgzOTAsIlVzZXJJRCI6NH0.V9WdWdJWeU1qqVCGDfTGu0asPZhiFUPmtnsfpN0GPro"
+// 	//userID := 5
+// 	out1 := GetUserID(tokenString)
+// 	fmt.Println(out1)
+
+// 	//Output
+// 	//5
+
+// }

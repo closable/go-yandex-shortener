@@ -10,22 +10,27 @@ import (
 	"github.com/closable/go-yandex-shortener/internal/utils"
 )
 
+// Описание структур данных
 type (
+	//Event Структора для работы JSON
 	Event struct {
 		UUID       string `json:"uud"`
 		ShortURL   string `json:"short_url"`
 		OriginlURL string `json:"original_url"`
 	}
+	// StoregeFile структура файлового хранилища
 	StoregeFile struct {
 		File    *os.File
 		Encoder *json.Encoder
 	}
+	// Consumer Структура для работы с файлововым хранилищем
 	Consumer struct {
 		File    *os.File
 		Decoder *json.Decoder
 	}
 )
 
+// NewFile новый экземпляр хранения
 func NewFile(fileName string) (*StoregeFile, error) {
 	os.MkdirAll(filepath.Dir(fileName), os.ModePerm)
 
@@ -41,10 +46,12 @@ func NewFile(fileName string) (*StoregeFile, error) {
 
 }
 
+// WriteEvent для записи в файловое хранилище
 func (s *StoregeFile) WriteEvent(event *Event) error {
 	return s.Encoder.Encode(&event)
 }
 
+// NewConsumer создание нового экземпляра
 func NewConsumer(fileName string) (*Consumer, error) {
 
 	file, err := os.OpenFile(fileName, os.O_RDONLY|os.O_CREATE, 0666)
@@ -58,6 +65,7 @@ func NewConsumer(fileName string) (*Consumer, error) {
 	}, nil
 }
 
+// Close функция хакрытия файового хранилища
 func (s *StoregeFile) Close() error {
 	return s.File.Close()
 }
@@ -82,6 +90,7 @@ func (s *StoregeFile) Close() error {
 // 	return nil
 // }
 
+// FindKeyByValue поиск ключа по значению
 func (s *StoregeFile) FindKeyByValue(urlText string) string {
 
 	consumer, err := NewConsumer(s.File.Name())
@@ -111,6 +120,7 @@ func (s *StoregeFile) FindKeyByValue(urlText string) string {
 	return ""
 }
 
+// FindExistingKey поиск существующего ключа
 func (s *StoregeFile) FindExistingKey(keyText string) (string, bool) {
 
 	consumer, err := NewConsumer(s.File.Name())
@@ -141,6 +151,7 @@ func (s *StoregeFile) FindExistingKey(keyText string) (string, bool) {
 	return "", false
 }
 
+// GetShortener получение сокращения
 func (s *StoregeFile) GetShortener(userID int, urlText string) (string, error) {
 	var shorterner string
 
@@ -162,19 +173,23 @@ func (s *StoregeFile) GetShortener(userID int, urlText string) (string, error) {
 	return shorterner, nil
 }
 
+// Ping healthcheck routine
 func (s *StoregeFile) Ping() bool {
 	shortener, _ := s.GetShortener(0, "ping")
 	return len(shortener) != 0
 }
 
+// PrepareStore заглушка для удовлетворения интерфейсу
 func (s *StoregeFile) PrepareStore() {
 }
 
+// GetURLs заглушка для удовлетворения интерфейсу
 func (s *StoregeFile) GetURLs(userID int) (map[string]string, error) {
 	var result = make(map[string]string)
 	return result, nil
 }
 
+// SoftDeleteURLs заглушка для удовлетворения интерфейсу
 func (s *StoregeFile) SoftDeleteURLs(userID int, key ...string) error {
 	return nil
 }

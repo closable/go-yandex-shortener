@@ -10,6 +10,7 @@ var (
 	connErr = "The connection was lost"
 )
 
+// CheckBaseActivity haelth check
 func (uh URLHandler) CheckBaseActivity(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	w.Header().Set("Content-Type", "application/json")

@@ -4,6 +4,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// InitRouter инициализация роутера
 func (uh *URLHandler) InitRouter() chi.Router {
 
 	router := chi.NewRouter()

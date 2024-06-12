@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Storager интерфейс реализации функционала
 type Storager interface {
 	GetShortener(userID int, txtURL string) (string, error)
 	FindExistingKey(keyText string) (string, bool)
@@ -22,23 +23,29 @@ type Storager interface {
 	SoftDeleteURLs(userID int, key ...string) error
 }
 
+// Перечеь структура данных
 type (
+	// URLHandler Стуктура для работы с shortener
 	URLHandler struct {
 		store     Storager
 		baseURL   string
 		logger    zap.Logger
 		maxLength int64
 	}
+	// JSONRequest Структура для работы JSON
 	JSONRequest struct {
 		URL string `json:"url"`
 	}
+	// JSONRespond Структура для работы JSON
 	JSONRespond struct {
 		Result string `json:"result"`
 	}
+	//JSONBatch Структура для работы JSON
 	JSONBatch struct {
 		CorrelationID string `json:"correlation_id"`
 		OriginalURL   string `json:"original_url"`
 	}
+	//JSONBatchRespond Структура для работы JSON
 	JSONBatchRespond struct {
 		CorrelationID string `json:"correlation_id"`
 		ShortURL      string `json:"short_url"`
@@ -52,6 +59,7 @@ var (
 	notFoundID = "Error! id is not found or empty"
 )
 
+// New создание экземпляра храения информаци
 func New(st Storager, baseURL string, logger zap.Logger, maxLength int64) *URLHandler {
 	st.PrepareStore()
 	// load stored data
@@ -72,6 +80,7 @@ func New(st Storager, baseURL string, logger zap.Logger, maxLength int64) *URLHa
 	}
 }
 
+// ResponseWriter исновной интерфейс для реализаци функционала
 type ResponseWriter interface {
 	//Header() Header
 	Write([]byte) (int, error)
@@ -87,11 +96,13 @@ type (
 
 	// добавляем реализацию http.ResponseWriter
 	loggingResponseWriter struct {
-		http.ResponseWriter // встраиваем оригинальный http.ResponseWriter
-		responseData        *responseData
+		// встраиваем оригинальный http.ResponseWriter
+		http.ResponseWriter
+		responseData *responseData
 	}
 )
 
+// Write вспомогательня функция для логгера
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter
 	size, err := r.ResponseWriter.Write(b)
@@ -99,12 +110,14 @@ func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
+// WriteHeader вспомогательня функция для логгера
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	// записываем код статуса, используя оригинальный http.ResponseWriter
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode // захватываем код статуса
 }
 
+// GenerateShortener функция сокращения URL
 func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	shortener := ""
@@ -172,6 +185,7 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 
 }
 
+// GetEndpointByShortener функция для возвращения URL по указанному сокращению
 func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	shortener := ""
@@ -218,6 +232,7 @@ func (uh *URLHandler) GetEndpointByShortener(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// GenerateJSONShortener функция сокращения URL для для JSON
 func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	shortener := ""
@@ -302,6 +317,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 
 }
 
+// UploadBatch функция для массовой загрузки данны в хранилище
 func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 	sugar := *uh.logger.Sugar()
 	var jsonData = &[]JSONBatch{}
@@ -378,6 +394,7 @@ func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// makeShortenURL вспомогательная  функция
 func makeShortenURL(URL string, baseURL string) string {
 	adr, _ := url.Parse(baseURL)
 	if len(adr.Host) == 0 {
@@ -387,6 +404,7 @@ func makeShortenURL(URL string, baseURL string) string {
 	}
 }
 
+// createRespondBody вспомогательная  функция
 func createRespondBody(result string) JSONRespond {
 	var respExtend = &JSONRespond{
 		Result: result,
