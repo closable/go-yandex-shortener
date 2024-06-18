@@ -3,7 +3,6 @@ package config
 
 import (
 	"flag"
-	"fmt"
 
 	"github.com/caarlos0/env/v10"
 )
@@ -14,6 +13,7 @@ type config struct {
 	BaseURL       string `env:"BASE_URL"`
 	FileStore     string `env:"FILE_STORAGE_PATH"`
 	DSN           string `env:"DATABASE_DSN"`
+	EnableHTTPS   string `env:"ENABLE_HTTPS"`
 }
 
 // переменные
@@ -25,7 +25,9 @@ var (
 	// Использование файлового хранилища
 	FlagFileStore string
 	// Использование СУБД
-	FlagDSN   string
+	FlagDSN string
+	// Активация https
+	FlagHTTPS string
 	configEnv = config{}
 )
 
@@ -47,7 +49,7 @@ func ParseFlags() {
 	flag.StringVar(&FlagFileStore, "f", "", "folder and path where to store data")
 	//flag.StringVar(&FlagDSN, "d", "postgres://postgres:1303@localhost:5432/postgres", "access to DBMS")
 	flag.StringVar(&FlagDSN, "d", "", "access to DBMS")
-
+	flag.StringVar(&FlagHTTPS, "s", "true", "access to DBMS")
 	flag.Parse()
 }
 
@@ -61,10 +63,8 @@ func LoadConfig() *config {
 	config.BaseURL = firstValue(&configEnv.BaseURL, &FlagSendAddr)
 	config.FileStore = firstValue(&configEnv.FileStore, &FlagFileStore)
 	config.DSN = firstValue(&configEnv.DSN, &FlagDSN)
-	// if !strings.Contains(config.DSN, "sslmode") {
-	// 	config.DSN = fmt.Sprintf("%s?sslmode=disable", config.DSN)
-	// }
-	fmt.Println(configEnv.DSN, FlagDSN)
+	config.EnableHTTPS = firstValue(&configEnv.EnableHTTPS, &FlagHTTPS)
+
 	return config
 }
 

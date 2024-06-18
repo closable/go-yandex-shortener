@@ -23,11 +23,5 @@ func (uh *URLHandler) InitRouter() chi.Router {
 	router.Get("/api/user/urls", uh.GetUrls)
 	router.Delete("/api/user/urls", uh.DelUrls)
 
-	// router.Group(func(r chi.Router) {
-	// 	r.Use(uh.Auth)
-	// 	r.Get("/api/user/urls", uh.GetUrls)
-	// 	r.Delete("/api/user/urls", uh.DelUrls)
-	// })
-
 	return router
 }

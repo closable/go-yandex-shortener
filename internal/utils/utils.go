@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+
+	"golang.org/x/crypto/acme/autocert"
 )
 
 // Описание структур данных
@@ -62,4 +64,35 @@ func GenerateBatchBody(itemsCnt int) {
 	file.Write(resp)
 
 	//fmt.Println(string(resp))
+}
+
+// MakeServerAddres составляет корректный адрес сервера в зависимости от флага https
+func MakeServerAddres(addr string, flagHTTPS string) (string, error) {
+	if len(flagHTTPS) == 0 {
+		return addr, nil
+	}
+
+	u, err := url.Parse(addr)
+	if err != nil {
+		return "", err
+	}
+	if u.Host == "localhost" || u.Host == "127.0.0.1" {
+		return ":443", nil
+	} else {
+		return fmt.Sprintf("%s:443", u.Host), nil
+	}
+}
+
+func MekeTLS(email string, whiteList string) *autocert.Manager {
+	manager := &autocert.Manager{
+		// директория для хранения сертификатов
+		Cache: autocert.DirCache("cache-dir"),
+		// функция, принимающая Terms of Service издателя сертификатов
+		Prompt: autocert.AcceptTOS,
+		Email:  email,
+		// перечень доменов, для которых будут поддерживаться сертификаты
+		HostPolicy: autocert.HostWhitelist(whiteList, fmt.Sprintf("www.%s", whiteList)),
+	}
+	// конструируем сервер с поддержкой TLS
+	return manager
 }

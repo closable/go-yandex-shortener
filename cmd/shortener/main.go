@@ -8,6 +8,7 @@ import (
 	"github.com/closable/go-yandex-shortener/internal/config"
 	"github.com/closable/go-yandex-shortener/internal/handlers"
 	"github.com/closable/go-yandex-shortener/internal/storage"
+	"github.com/closable/go-yandex-shortener/internal/utils"
 )
 
 var buildVersion, buildDate, buildCommit = "N/A", "N/A", "N/A"
@@ -54,7 +55,31 @@ func run() error {
 
 	handler := handlers.New(store, cfg.BaseURL, logger, 1)
 
+	serverAddr, err := utils.MakeServerAddres(cfg.ServerAddress, cfg.EnableHTTPS)
+	if err != nil {
+		panic(err)
+	}
+
 	sugar.Infoln(storeMsg)
-	sugar.Infoln("Running server on", cfg.ServerAddress)
-	return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())
+	sugar.Infoln("Running server on", serverAddr)
+
+	if len(cfg.EnableHTTPS) > 0 {
+		server := &http.Server{
+			Addr:    serverAddr,
+			Handler: handler.InitRouter(),
+			// для TLS-конфигурации используем менеджер сертификатов
+			TLSConfig: utils.MekeTLS("closable@yandex.ru", "shortener").TLSConfig(),
+		}
+		return server.ListenAndServeTLS("", "")
+
+	} else {
+		server := &http.Server{
+			Addr:    serverAddr,
+			Handler: handler.InitRouter(),
+		}
+		return server.ListenAndServe()
+	}
+
+	//return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())
+
 }
