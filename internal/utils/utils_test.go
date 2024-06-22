@@ -61,13 +61,13 @@ func TestGetRandomKey(t *testing.T) {
 
 func ExampleMakeServerAddres() {
 
-	out1, _ := MakeServerAddres("localhost:8080", "true")
+	out1, _ := MakeServerAddres("localhost:8080", true)
 	fmt.Println(out1)
 
-	out2, _ := MakeServerAddres("localhost:8080", "")
+	out2, _ := MakeServerAddres("localhost:8080", false)
 	fmt.Println(out2)
 
-	out3, _ := MakeServerAddres("10.10.10.10", "true")
+	out3, _ := MakeServerAddres("10.10.10.10", true)
 	fmt.Println(out3)
 
 	//Output
@@ -81,20 +81,20 @@ func TestMakeServerAddres(t *testing.T) {
 	tests := []struct {
 		name      string
 		txtURL    string
-		flagHTTPS string
+		flagHTTPS bool
 		want      string
 	}{
 		// TODO: Add test cases.
 		{
 			name:      "Check URL is valid",
 			txtURL:    "localhost:8080",
-			flagHTTPS: "true",
+			flagHTTPS: true,
 			want:      ":443",
 		},
 		{
 			name:      "Check protocol",
 			txtURL:    "localhost:8080",
-			flagHTTPS: "",
+			flagHTTPS: false,
 			want:      "localhost:8080",
 		},
 	}

@@ -67,8 +67,8 @@ func GenerateBatchBody(itemsCnt int) {
 }
 
 // MakeServerAddres составляет корректный адрес сервера в зависимости от флага https
-func MakeServerAddres(addr string, flagHTTPS string) (string, error) {
-	if len(flagHTTPS) == 0 {
+func MakeServerAddres(addr string, flagHTTPS bool) (string, error) {
+	if !flagHTTPS {
 		return addr, nil
 	}
 

@@ -59,11 +59,10 @@ func run() error {
 	if err != nil {
 		panic(err)
 	}
-
 	sugar.Infoln(storeMsg)
 	sugar.Infoln("Running server on", serverAddr)
 
-	if len(cfg.EnableHTTPS) > 0 {
+	if cfg.EnableHTTPS {
 		server := &http.Server{
 			Addr:    serverAddr,
 			Handler: handler.InitRouter(),
