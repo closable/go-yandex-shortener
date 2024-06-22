@@ -104,7 +104,7 @@ func firstValue(valEnv *string, valFlag *string) string {
 
 // updateFromCnfig обновление переменных из файла сонфигурации
 func updateFromConfig(c *config) error {
-	f, err := os.OpenFile("config.json", os.O_RDONLY|os.O_RDWR, 0755)
+	f, err := os.OpenFile("../../config.json", os.O_RDONLY|os.O_RDWR, 0755)
 	if err != nil {
 		return err
 	}
