@@ -83,6 +83,7 @@ func MakeServerAddres(addr string, flagHTTPS bool) (string, error) {
 	}
 }
 
+// MekeTLS вспомогательная функция для составления TLS
 func MekeTLS(email string, whiteList string) *autocert.Manager {
 	manager := &autocert.Manager{
 		// директория для хранения сертификатов
