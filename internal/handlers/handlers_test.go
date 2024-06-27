@@ -207,15 +207,6 @@ func TestGenerateJSONShortener(t *testing.T) {
 				statusCode:  http.StatusCreated,
 			},
 		},
-		// {
-		// 	name: "Method POST",
-		// 	wants: wants{
-		// 		method:      "POST",
-		// 		body:        "https://yandex.ru",
-		// 		contentType: "application/json",
-		// 		statusCode:  http.StatusConflict,
-		// 	},
-		// },
 		{
 			name: "Method POST wrong content-type",
 			wants: wants{
