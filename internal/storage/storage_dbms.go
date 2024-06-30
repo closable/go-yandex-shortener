@@ -309,6 +309,7 @@ func (dbms *StoreDBMS) SoftDeleteURLs(userID int, keys ...string) error {
 	return nil
 }
 
+// GetStats получене статистики  сохранненных данных
 func (dbms *StoreDBMS) GetStats() (int, int) {
 	ctx := context.Background()
 	sql := "SELECT count(*) urls, count(distinct user_id) useres FROM ya.shortener"
