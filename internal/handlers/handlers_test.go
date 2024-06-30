@@ -31,7 +31,7 @@ func TestGenerateShortener(t *testing.T) {
 	// store, _ := storage.NewDBMS(DSN)
 	// store, _ := storage.NewFile(fileStore)
 	store, _ := storage.NewMemory()
-	handler := New(store, "localhost:8080", logger, 1)
+	handler := New(store, "localhost:8080", logger, 1, "")
 	store.Urls["test"] = "http://test.ru"
 
 	type wants struct {
@@ -109,7 +109,7 @@ func TestGetEndpointByShortener(t *testing.T) {
 	// store, _ := storage.NewDBMS(DSN)
 	// store, _ := storage.NewFile(fileStore)
 	store, _ := storage.NewMemory()
-	handler := New(store, "localhost:8080", logger, 1)
+	handler := New(store, "localhost:8080", logger, 1, "")
 
 	type wants struct {
 		method      string
@@ -184,7 +184,7 @@ func TestGenerateJSONShortener(t *testing.T) {
 	// store, _ := storage.NewDBMS(DSN)
 	// store, _ := storage.NewFile(fileStore)
 	store, _ := storage.NewMemory()
-	handler := New(store, "localhost:8080", logger, 1)
+	handler := New(store, "localhost:8080", logger, 1, "")
 
 	type wants struct {
 		method      string
@@ -260,7 +260,7 @@ func TestCompressor(t *testing.T) {
 	// store, _ := storage.NewDBMS(DSN)
 	// store, _ := storage.NewFile(fileStore)
 	store, _ := storage.NewMemory()
-	handler := New(store, "localhost:8080", logger, 1)
+	handler := New(store, "localhost:8080", logger, 1, "")
 
 	ts := httptest.NewServer(handler.InitRouter())
 	defer ts.Close()
@@ -348,7 +348,7 @@ func TestUploadBatch(t *testing.T) {
 	// store, _ := storage.NewDBMS(DSN)
 	// store, _ := storage.NewFile(fileStore)
 	store, _ := storage.NewMemory()
-	handler := New(store, "localhost:8080", logger, 1)
+	handler := New(store, "localhost:8080", logger, 1, "")
 
 	type wants struct {
 		method      string

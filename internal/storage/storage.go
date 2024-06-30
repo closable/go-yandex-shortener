@@ -93,3 +93,8 @@ func (s *Store) GetURLs(userID int) (map[string]string, error) {
 func (s *Store) SoftDeleteURLs(userID int, key ...string) error {
 	return nil
 }
+
+// GetStats сбор данных для совместимости с ограниченным функционалом
+func (s *Store) GetStats() (int, int) {
+	return s.Length(), 0
+}

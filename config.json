@@ -3,5 +3,6 @@
     "base_url": "localhost:8090", 
     "file_storage_path": "", 
     "database_dsn": "postgres://postgres:1303@localhost:5432/postgres", 
-    "enable_https": false 
+    "enable_https": false,
+    "trusted_subnet": "127.0.0.2" 
 }
