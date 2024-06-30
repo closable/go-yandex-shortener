@@ -193,3 +193,26 @@ func (s *StoregeFile) GetURLs(userID int) (map[string]string, error) {
 func (s *StoregeFile) SoftDeleteURLs(userID int, key ...string) error {
 	return nil
 }
+
+// GetStats для записи в файловое хранилище
+func (s *StoregeFile) GetStats() (int, int) {
+	consumer, err := NewConsumer(s.File.Name())
+	if err != nil {
+		return 0, 0
+	}
+	defer consumer.File.Close()
+
+	body, err := io.ReadAll(consumer.File)
+	if err != nil {
+		return 0, 0
+	}
+
+	rows := strings.Split(string(body), "\n")
+	cnt := 0
+	for _, v := range rows {
+		if len(v) > 0 {
+			cnt++
+		}
+	}
+	return cnt, 0
+}

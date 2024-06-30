@@ -308,3 +308,16 @@ func (dbms *StoreDBMS) SoftDeleteURLs(userID int, keys ...string) error {
 
 	return nil
 }
+
+func (dbms *StoreDBMS) GetStats() (int, int) {
+	ctx := context.Background()
+	sql := "SELECT count(*) urls, count(distinct user_id) useres FROM ya.shortener"
+
+	var urls, users int
+	err := dbms.DB.QueryRowContext(ctx, sql).Scan(&urls, &users)
+	if err != nil {
+		return 0, 0
+	}
+
+	return urls, users
+}

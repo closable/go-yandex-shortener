@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +12,7 @@ import (
 	"github.com/closable/go-yandex-shortener/internal/handlers"
 	"github.com/closable/go-yandex-shortener/internal/storage"
 	"github.com/closable/go-yandex-shortener/internal/utils"
+	"go.uber.org/zap"
 )
 
 var buildVersion, buildDate, buildCommit = "N/A", "N/A", "N/A"
@@ -27,13 +27,13 @@ func main() {
 	signal.Notify(sigint, os.Interrupt)
 	idleConnsClosed := make(chan struct{})
 
-	srv, isHTTPS := serverPrepare()
+	srv, isHTTPS, logger := serverPrepare()
 	go func() {
 		<-sigint
 		// получили сигнал os.Interrupt, запускаем процедуру graceful shutdown
 		if err := srv.Shutdown(context.Background()); err != nil {
 			// ошибки закрытия Listener
-			log.Printf("HTTP server Shutdown: %v", err)
+			logger.Infoln("HTTP server Shutdown:", err)
 		}
 		close(idleConnsClosed)
 	}()
@@ -45,7 +45,7 @@ func main() {
 	}
 
 	<-idleConnsClosed
-	fmt.Println("Server Shutdown gracefully")
+	logger.Infoln("Server Shutdown gracefully !")
 }
 
 // run старт сервиса
@@ -57,7 +57,7 @@ func run(srv *http.Server, isHTTPS bool) error {
 }
 
 // serverPrepare подготовка и конфигурирование сервиса
-func serverPrepare() (*http.Server, bool) {
+func serverPrepare() (*http.Server, bool, zap.SugaredLogger) {
 	// generate test body
 	// utils.GenerateBatchBody(100000)
 
@@ -86,7 +86,7 @@ func serverPrepare() (*http.Server, bool) {
 		panic(err)
 	}
 
-	handler := handlers.New(store, cfg.BaseURL, logger, 1)
+	handler := handlers.New(store, cfg.BaseURL, logger, 1, cfg.TrastedSubnet)
 
 	serverAddr, err := utils.MakeServerAddres(cfg.ServerAddress, cfg.EnableHTTPS)
 	if err != nil {
@@ -95,22 +95,16 @@ func serverPrepare() (*http.Server, bool) {
 	sugar.Infoln(storeMsg)
 	sugar.Infoln("Running server on", serverAddr)
 
-	if cfg.EnableHTTPS {
-		server := &http.Server{
-			Addr:    serverAddr,
-			Handler: handler.InitRouter(),
-			// для TLS-конфигурации используем менеджер сертификатов
-			TLSConfig: utils.MekeTLS("closable@yandex.ru", "shortener").TLSConfig(),
-		}
-		return server, true
-
-	} else {
-		server := &http.Server{
-			Addr:    serverAddr,
-			Handler: handler.InitRouter(),
-		}
-		return server, false
+	server := &http.Server{
+		Addr:    serverAddr,
+		Handler: handler.InitRouter(),
 	}
 
+	if cfg.EnableHTTPS {
+		// для TLS-конфигурации используем менеджер сертификатов
+		server.TLSConfig = utils.MekeTLS("closable@yandex.ru", "shortener").TLSConfig()
+		return server, true, sugar
+	}
+	return server, false, sugar
 	//return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())
 }
