@@ -24,6 +24,8 @@ type fileConfig struct {
 	EnableHTTPS bool `json:"enable_https"`
 	//  аналог переменной окружения TRUSTED_SUBNET
 	TrastedSubnet string `json:"trusted_subnet"`
+	//  аналог переменной окружения ENABLE_GRP
+	UseGRPC bool `json:"use_grpc"`
 }
 
 // config описание структур данных среды окружения
@@ -35,6 +37,7 @@ type config struct {
 	EnableHTTPS   bool   `env:"ENABLE_HTTPS"`
 	UseConfig     bool   `env:"CONFIG"`
 	TrastedSubnet string `env:"TRUSTED_SUBNET"`
+	UseGRPC       bool   `env:"USE_GRPC"`
 }
 
 // переменные
@@ -53,7 +56,9 @@ var (
 	FlagConfig bool
 	// Доверенная подсеть
 	FlagTrasted string
-	configEnv   = config{}
+	// Использовать gRPC
+	FlagGRPC  bool
+	configEnv = config{}
 )
 
 // ParseConfigEnv парсинг переменных среды окружения
@@ -68,7 +73,7 @@ func ParseFlags() {
 	// как аргумент -a со значением :8080 по умолчанию
 	flag.StringVar(&FlagRunAddr, "a", "localhost:8080", "address and port to run server")
 	// адрес и порт куда отправлять сокращатель
-	flag.StringVar(&FlagSendAddr, "b", "localhost:8080", "sender address and port to run server")
+	flag.StringVar(&FlagSendAddr, "b", "localhost:8090", "sender address and port to run server")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	//flag.StringVar(&FlagFileStore, "f", "/tmp/short-url-db.json", "folder and path where to store data")
 	flag.StringVar(&FlagFileStore, "f", "", "folder and path where to store data")
@@ -76,6 +81,7 @@ func ParseFlags() {
 	flag.StringVar(&FlagDSN, "d", "", "access to DBMS")
 	flag.BoolVar(&FlagHTTPS, "s", false, "use https")
 	flag.BoolVar(&FlagConfig, "c", false, "use config file")
+	flag.BoolVar(&FlagGRPC, "g", false, "use gRPC")
 	flag.StringVar(&FlagTrasted, "t", "", "use trasted subnet")
 
 	flag.Parse()
@@ -94,6 +100,7 @@ func LoadConfig() *config {
 	config.DSN = firstValue(&configEnv.DSN, &FlagDSN)
 	config.EnableHTTPS = configEnv.EnableHTTPS || FlagHTTPS
 	config.UseConfig = configEnv.UseConfig || FlagConfig
+	config.UseGRPC = config.UseGRPC || FlagGRPC
 	config.TrastedSubnet = firstValue(&configEnv.TrastedSubnet, &FlagTrasted)
 
 	if config.UseConfig {
@@ -114,7 +121,7 @@ func firstValue(valEnv *string, valFlag *string) string {
 // updateFromCnfig обновление переменных из файла сонфигурации
 func updateFromConfig(c *config) error {
 	f, err := os.OpenFile("../../config.json", os.O_RDONLY|os.O_RDWR, 0755)
-	// f, err := os.OpenFile("config.json", os.O_RDONLY|os.O_RDWR, 0755)
+	//f, err := os.OpenFile("config.json", os.O_RDONLY|os.O_RDWR, 0755)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -137,6 +144,7 @@ func updateFromConfig(c *config) error {
 	c.FileStore = firstValue(&res.FileStore, &c.FileStore)
 	c.DSN = firstValue(&res.DSN, &c.DSN)
 	c.EnableHTTPS = res.EnableHTTPS || c.EnableHTTPS
+	c.UseGRPC = res.UseGRPC || c.UseGRPC
 	c.TrastedSubnet = firstValue(&res.TrastedSubnet, &c.TrastedSubnet)
 	return nil
 }

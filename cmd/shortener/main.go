@@ -4,15 +4,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 
-	"github.com/closable/go-yandex-shortener/internal/config"
-	"github.com/closable/go-yandex-shortener/internal/handlers"
-	"github.com/closable/go-yandex-shortener/internal/storage"
-	"github.com/closable/go-yandex-shortener/internal/utils"
-	"go.uber.org/zap"
+	"github.com/closable/go-yandex-shortener/internal/services"
 )
 
 var buildVersion, buildDate, buildCommit = "N/A", "N/A", "N/A"
@@ -27,84 +22,31 @@ func main() {
 	signal.Notify(sigint, os.Interrupt)
 	idleConnsClosed := make(chan struct{})
 
-	srv, isHTTPS, logger := serverPrepare()
+	srv, err := services.New()
+	if err != nil {
+		panic(err)
+	}
+
 	go func() {
 		<-sigint
 		// получили сигнал os.Interrupt, запускаем процедуру graceful shutdown
 		if err := srv.Shutdown(context.Background()); err != nil {
 			// ошибки закрытия Listener
-			logger.Infoln("HTTP server Shutdown:", err)
+			msg := "HTTP(s) server Shutdown:"
+			if srv.IsGRPC {
+				msg = "gRPC server Shutdown:"
+			}
+			srv.Logger.Infoln(msg, err)
 		}
 		close(idleConnsClosed)
 	}()
 
-	err := run(srv, isHTTPS) //   srv.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
+	err = srv.Run()
+	if err != nil && err != srv.ErrClosed {
 		// ошибки старта или остановки Listener
 		panic(err)
 	}
 
 	<-idleConnsClosed
-	logger.Infoln("Server Shutdown gracefully !")
-}
-
-// run старт сервиса
-func run(srv *http.Server, isHTTPS bool) error {
-	if isHTTPS {
-		return srv.ListenAndServeTLS("", "")
-	}
-	return srv.ListenAndServe()
-}
-
-// serverPrepare подготовка и конфигурирование сервиса
-func serverPrepare() (*http.Server, bool, zap.SugaredLogger) {
-	// generate test body
-	// utils.GenerateBatchBody(100000)
-
-	cfg := config.LoadConfig()
-	logger := handlers.NewLogger()
-	sugar := *logger.Sugar()
-
-	var store handlers.Storager
-	var err error
-
-	var storeMsg string
-	if len(cfg.DSN) > 0 {
-		store, err = storage.NewDBMS(cfg.DSN)
-		storeMsg = fmt.Sprintf("Store DBMS setup successfuly -> %s", cfg.DSN)
-	} else if len(cfg.FileStore) > 0 {
-		store, err = storage.NewFile(cfg.FileStore)
-		storeMsg = fmt.Sprintf("Store File setup successfuly -> %s", cfg.FileStore)
-	} else {
-		store, err = storage.NewMemory()
-		storeMsg = fmt.Sprintf("Store Memory setup successfuly -> %s", "default")
-	}
-
-	if err != nil {
-		sugar.Panicln("Store invalid")
-		//os.Exit(1)
-		panic(err)
-	}
-
-	handler := handlers.New(store, cfg.BaseURL, logger, 1, cfg.TrastedSubnet)
-
-	serverAddr, err := utils.MakeServerAddres(cfg.ServerAddress, cfg.EnableHTTPS)
-	if err != nil {
-		panic(err)
-	}
-	sugar.Infoln(storeMsg)
-	sugar.Infoln("Running server on", serverAddr)
-
-	server := &http.Server{
-		Addr:    serverAddr,
-		Handler: handler.InitRouter(),
-	}
-
-	if cfg.EnableHTTPS {
-		// для TLS-конфигурации используем менеджер сертификатов
-		server.TLSConfig = utils.MekeTLS("closable@yandex.ru", "shortener").TLSConfig()
-		return server, true, sugar
-	}
-	return server, false, sugar
-	//return http.ListenAndServe(cfg.ServerAddress, handler.InitRouter())
+	srv.Logger.Infoln("Server Shutdown gracefully !")
 }

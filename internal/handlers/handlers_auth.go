@@ -52,7 +52,7 @@ func (uh *URLHandler) GetUrls(w http.ResponseWriter, r *http.Request) {
 	var shorten string
 
 	for key, value := range res {
-		shorten = makeShortenURL(key, uh.baseURL)
+		shorten = MakeShortenURL(key, uh.baseURL)
 		body = append(body, makeAuthRequestRow(shorten, value))
 	}
 	resp, err := json.Marshal(body)

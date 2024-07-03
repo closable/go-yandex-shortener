@@ -207,7 +207,7 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 		statusSet = true
 		w.WriteHeader(http.StatusConflict)
 	}
-	body := makeShortenURL(shortener, uh.baseURL)
+	body := MakeShortenURL(shortener, uh.baseURL)
 	if !statusSet {
 		w.WriteHeader(http.StatusCreated)
 	}
@@ -328,7 +328,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusConflict)
 	}
 
-	body = makeShortenURL(shortener, uh.baseURL)
+	body = MakeShortenURL(shortener, uh.baseURL)
 	resp, err := json.Marshal(createRespondBody(body))
 	if err != nil {
 		resp, _ := json.Marshal(createRespondBody(errURL))
@@ -397,7 +397,7 @@ func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 			}
 
 			shortener, _ := uh.store.GetShortener(userID, URL)
-			body := makeShortenURL(shortener, uh.baseURL)
+			body := MakeShortenURL(shortener, uh.baseURL)
 
 			item := &JSONBatchRespond{
 				CorrelationID: v.CorrelationID,
@@ -425,8 +425,8 @@ func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// makeShortenURL вспомогательная  функция
-func makeShortenURL(URL string, baseURL string) string {
+// MakeShortenURL вспомогательная  функция
+func MakeShortenURL(URL string, baseURL string) string {
 	adr, _ := url.Parse(baseURL)
 	if len(adr.Host) == 0 {
 		return fmt.Sprintf("http://%s/%s", baseURL, URL)
