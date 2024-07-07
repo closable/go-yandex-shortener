@@ -21,16 +21,23 @@ type Storager interface {
 	PrepareStore()
 	GetURLs(userID int) (map[string]string, error)
 	SoftDeleteURLs(userID int, key ...string) error
+	GetStats() (int, int)
 }
 
 // Перечеь структура данных
 type (
+	// StatsRespond Структура для ответа статистики
+	StatsRespond struct {
+		URLS  int `json:"urls"`
+		Users int `json:"users"`
+	}
 	// URLHandler Стуктура для работы с shortener
 	URLHandler struct {
-		store     Storager
-		baseURL   string
-		logger    zap.Logger
-		maxLength int64
+		store         Storager
+		baseURL       string
+		logger        zap.Logger
+		maxLength     int64
+		trastedSubnet string
 	}
 	// JSONRequest Структура для работы JSON
 	JSONRequest struct {
@@ -57,10 +64,11 @@ var (
 	errURL     = "Error! Check url it's should seems as like this 'http[s]://example.com'"
 	emptyID    = "Error! id is empty!"
 	notFoundID = "Error! id is not found or empty"
+	jsonErr    = "Error! json create error"
 )
 
 // New создание экземпляра храения информаци
-func New(st Storager, baseURL string, logger zap.Logger, maxLength int64) *URLHandler {
+func New(st Storager, baseURL string, logger zap.Logger, maxLength int64, trasted string) *URLHandler {
 	st.PrepareStore()
 	// load stored data
 	// if len(fileStore) > 0 {
@@ -73,10 +81,11 @@ func New(st Storager, baseURL string, logger zap.Logger, maxLength int64) *URLHa
 	// }
 
 	return &URLHandler{
-		store:     st,
-		baseURL:   baseURL,
-		logger:    logger,
-		maxLength: maxLength, // will compress if content-length > maxLength
+		store:         st,
+		baseURL:       baseURL,
+		logger:        logger,
+		maxLength:     maxLength, // will compress if content-length > maxLength
+		trastedSubnet: trasted,
 	}
 }
 
@@ -115,6 +124,28 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	// записываем код статуса, используя оригинальный http.ResponseWriter
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode // захватываем код статуса
+}
+
+// GetStats функция для сбора статистики из доверенной зоны
+func (uh *URLHandler) GetStats(w http.ResponseWriter, r *http.Request) {
+	sugar := *uh.logger.Sugar()
+	urls, users := uh.store.GetStats()
+	switch c := w.Header().Get("Content-Type"); c {
+	case "application/json":
+		resp := &StatsRespond{URLS: urls, Users: users}
+		body, err := json.Marshal(resp)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			sugar.Infoln("uri", r.RequestURI, "method", r.Method, "description", jsonErr)
+			return
+		}
+		sugar.Infoln("uri", r.RequestURI, "method", r.Method, "description", fmt.Sprintf("total of urls=%d,  total of users=%d", urls, users))
+		w.Write([]byte(body))
+	default:
+		body := fmt.Sprintf("total of urls=%d,  total of users=%d", urls, users)
+		sugar.Infoln("uri", r.RequestURI, "method", r.Method, "description", body)
+		w.Write([]byte(body))
+	}
 }
 
 // GenerateShortener функция сокращения URL
@@ -176,7 +207,7 @@ func (uh *URLHandler) GenerateShortener(w http.ResponseWriter, r *http.Request) 
 		statusSet = true
 		w.WriteHeader(http.StatusConflict)
 	}
-	body := makeShortenURL(shortener, uh.baseURL)
+	body := MakeShortenURL(shortener, uh.baseURL)
 	if !statusSet {
 		w.WriteHeader(http.StatusCreated)
 	}
@@ -297,7 +328,7 @@ func (uh *URLHandler) GenerateJSONShortener(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusConflict)
 	}
 
-	body = makeShortenURL(shortener, uh.baseURL)
+	body = MakeShortenURL(shortener, uh.baseURL)
 	resp, err := json.Marshal(createRespondBody(body))
 	if err != nil {
 		resp, _ := json.Marshal(createRespondBody(errURL))
@@ -366,7 +397,7 @@ func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 			}
 
 			shortener, _ := uh.store.GetShortener(userID, URL)
-			body := makeShortenURL(shortener, uh.baseURL)
+			body := MakeShortenURL(shortener, uh.baseURL)
 
 			item := &JSONBatchRespond{
 				CorrelationID: v.CorrelationID,
@@ -394,8 +425,8 @@ func (uh *URLHandler) UploadBatch(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// makeShortenURL вспомогательная  функция
-func makeShortenURL(URL string, baseURL string) string {
+// MakeShortenURL вспомогательная  функция
+func MakeShortenURL(URL string, baseURL string) string {
 	adr, _ := url.Parse(baseURL)
 	if len(adr.Host) == 0 {
 		return fmt.Sprintf("http://%s/%s", baseURL, URL)

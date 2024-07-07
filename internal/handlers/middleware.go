@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -217,4 +218,48 @@ func GetUserID(tokenString string) int {
 
 	// возвращаем ID пользователя в читаемом виде
 	return claims.UserID
+}
+
+// Traster middleware для сжатия запроса
+func (uh *URLHandler) Traster(h http.Handler) http.Handler {
+	trastFn := func(w http.ResponseWriter, r *http.Request) {
+		sugar := *uh.logger.Sugar()
+		granted := false
+
+		if len(uh.trastedSubnet) == 0 {
+			sugar.Infoln("uri", r.RequestURI, "method", r.Method, "detail", "untrasted subnet")
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(" "))
+			return
+		}
+
+		addrList := []string{r.RemoteAddr, r.Header.Get("X-Real-IP"), r.Header.Get("X-Forwarded-For")}
+
+	loop:
+		for _, addr := range addrList {
+			ip, _, err := net.SplitHostPort(addr)
+
+			if err != nil {
+				sugar.Infoln("uri", r.RequestURI, "method", r.Method, "detail", err)
+				continue
+			}
+
+			if strings.Contains(uh.trastedSubnet, ip) {
+				granted = true
+				break loop
+			}
+		}
+
+		if !granted {
+			sugar.Infoln("uri", r.RequestURI, "method", r.Method, "detail", "untrasted subnet")
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(" "))
+			return
+		}
+
+		sugar.Infoln("uri", r.RequestURI, "method", r.Method, "detail", "trasted subnet - OK")
+		h.ServeHTTP(w, r)
+	}
+
+	return http.HandlerFunc(trastFn)
 }

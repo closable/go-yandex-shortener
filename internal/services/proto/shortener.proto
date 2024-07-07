@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package goyandexshortener;
+
+option go_package = "goyandexshortener/internal/grpc/proto";
+
+
+message GetShortenerRequest {
+    int32 userId = 1;
+    string url = 2;
+}
+
+message GetShortenerResponse {
+    string shortener = 1;
+    string error = 2;
+}
+
+
+message GetURLsRequest {
+    int32 userId = 1;
+}
+
+message GetURLsResponse {
+    repeated urlRow rows = 1;
+}
+
+message urlRow {
+    string originalURL = 1;
+    string shortURL = 2;
+}
+
+message CountURLsRequest {
+
+} 
+
+message CountURLsResponse {
+    int32 cnt = 1;
+    string error = 2;
+}
+
+message GetPingRequest {
+
+}
+
+message GetPingResponse {
+    bool ping = 1;
+    string error = 2;
+}
+
+message GetStatsRequest {
+
+}
+
+message GetStatsResponse {
+    int32 urls = 1;
+    int32 users = 2;
+    string error = 3;
+}
+
+service Shortenes {
+    //rpc Length(CountURLsRequest) returns (CountURLsResponse);
+    rpc GetURLs(GetURLsRequest) returns (GetURLsResponse);
+    rpc GetShortener(GetShortenerRequest) returns (GetShortenerResponse);
+    rpc Ping(GetPingRequest) returns (GetPingResponse);
+    rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+}
+
+
+/*
+protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative internal/grpc/proto/shortener.proto
+*/

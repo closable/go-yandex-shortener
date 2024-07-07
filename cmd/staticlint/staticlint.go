@@ -40,7 +40,7 @@ import (
 )
 
 // Config — имя файла конфигурации.
-const Config = `config.json`
+const Config = `lint-config.json`
 
 // ConfigData описывает структуру файла конфигурации.
 type ConfigData struct {
